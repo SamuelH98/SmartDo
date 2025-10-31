@@ -4,7 +4,14 @@ export default function Layout() {
   return (
     <Stack>
       <Stack.Screen name="index" options={{ title: "Home", headerShown: false }} />
-      <Stack.Screen name="home-nested" options={{ title: "Home Nested" }} />
+      <Stack.Screen 
+        name="inbox" 
+        options={{
+          title: "",
+          headerShown: true,
+          headerShadowVisible: false,
+        }}
+      />
     </Stack>
   );
 }

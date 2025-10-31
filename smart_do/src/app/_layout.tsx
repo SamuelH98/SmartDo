@@ -1,16 +1,15 @@
 import { Stack } from "expo-router";
 import "../../global.css";
 import React from "react";
-import { StatusBar } from "expo-status-bar";
+import { TasksProvider } from "@/context/TasksContext";
 
 export const unstable_settings = {
-  initialRouteName: "(tabs)", // anchor
+  initialRouteName: "(tabs)",
 };
 
 export default function RootLayout() {
   return (
-    <React.Fragment>
-      <StatusBar style="auto" />
+    <TasksProvider>
       <Stack>
         <Stack.Screen
           name="(tabs)"
@@ -18,8 +17,7 @@ export default function RootLayout() {
             headerShown: false,
           }}
         />
-        
       </Stack>
-    </React.Fragment>
+    </TasksProvider>
   );
 }
