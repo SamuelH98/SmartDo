@@ -5,9 +5,9 @@ const TASKS_STORAGE_KEY = '@inbox_tasks';
 
 interface Task {
   id: string;
-  sender: string;
+  sender: string; // Used as Title/Sender
   subject: string;
-  preview: string;
+  preview: string; // Used as Notes
   time: string;
   timestamp: number;
   completed: boolean;
@@ -17,6 +17,7 @@ interface TasksContextType {
   tasks: Task[];
   addTask: (title: string, notes: string) => void;
   removeTask: (id: string) => void;
+  toggleTaskCompletion: (id: string) => void; // Added this
   loading: boolean;
 }
 
@@ -40,8 +41,7 @@ export function TasksProvider({ children }: { children: React.ReactNode }) {
     try {
       const jsonValue = await AsyncStorage.getItem(TASKS_STORAGE_KEY);
       if (jsonValue != null) {
-        const loadedTasks = JSON.parse(jsonValue);
-        setTasks(loadedTasks);
+        setTasks(JSON.parse(jsonValue));
       }
     } catch (error) {
       console.error('Error loading tasks:', error);
@@ -70,16 +70,23 @@ export function TasksProvider({ children }: { children: React.ReactNode }) {
         timestamp: Date.now(),
         completed: false
       };
-      setTasks([newTask, ...tasks]);
+      setTasks(prev => [newTask, ...prev]);
     }
   };
 
   const removeTask = (id: string) => {
-    setTasks(tasks.filter(task => task.id !== id));
+    setTasks(prev => prev.filter(task => task.id !== id));
+  };
+
+  // New function to handle checking/unchecking
+  const toggleTaskCompletion = (id: string) => {
+    setTasks(prev => prev.map(task => 
+      task.id === id ? { ...task, completed: !task.completed } : task
+    ));
   };
 
   return (
-    <TasksContext.Provider value={{ tasks, addTask, removeTask, loading }}>
+    <TasksContext.Provider value={{ tasks, addTask, removeTask, toggleTaskCompletion, loading }}>
       {children}
     </TasksContext.Provider>
   );

@@ -12,6 +12,14 @@ export default function Layout() {
           headerShadowVisible: false,
         }}
       />
+      <Stack.Screen 
+        name="logbook" 
+        options={{
+          title: "",
+          headerShown: true,
+          headerShadowVisible: false,
+        }}
+      />
     </Stack>
   );
 }
