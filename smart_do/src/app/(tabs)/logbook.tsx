@@ -1,13 +1,16 @@
-import { View, SectionList, TouchableOpacity, Modal, ScrollView } from "react-native";
+import { View, SectionList, TouchableOpacity, Modal, ScrollView, TextInput } from "react-native";
 import { AppText } from "@/components/AppText";
-import { Check, X, Trash2, Box, CheckSquare } from "lucide-react-native";
+import { Check, X, Trash2, Box, CheckSquare, Plus } from "lucide-react-native";
 import { useState } from "react";
 import { useTasks } from "@/context/TasksContext";
 
 export default function LogbookScreen() {
-  const { tasks, removeTask, toggleTaskCompletion } = useTasks();
+  const { tasks, removeTask, toggleTaskCompletion, addTask } = useTasks();
   const [previewModal, setPreviewModal] = useState(false);
   const [selectedLog, setSelectedLog] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [taskTitle, setTaskTitle] = useState("");
+  const [taskNotes, setTaskNotes] = useState("");
 
   // 1. Group tasks by Date (Today, Yesterday, etc.)
   const getSectionData = () => {
@@ -53,6 +56,19 @@ export default function LogbookScreen() {
   const handlePreview = (log: any) => {
     setSelectedLog(log);
     setPreviewModal(true);
+  };
+
+  const handleAddTask = () => {
+    if (taskTitle.trim()) {
+      addTask({
+        sender: taskTitle,
+        preview: taskNotes,
+        completed: false,
+      });
+      setTaskTitle("");
+      setTaskNotes("");
+      setModalVisible(false);
+    }
   };
 
   const renderSectionHeader = ({ section: { title } }) => (
@@ -107,7 +123,7 @@ export default function LogbookScreen() {
   return (
     <View className="flex-1 bg-white">
       {/* Header */}
-      <View className="px-4 py-6 border-b border-gray-100 flex-row items-center bg-white">
+      <View className="px-4 py-6  flex-row items-center bg-white">
         <CheckSquare size={24} color="#4ade80" />
         <AppText className="text-3xl font-semibold text-gray-900 ml-3 mt-2">Logbook</AppText>
       </View>
@@ -120,7 +136,7 @@ export default function LogbookScreen() {
         stickySectionHeadersEnabled={false}
         ListEmptyComponent={
           <View className="flex-1 justify-center items-center p-8 mt-[-80px]">
-            <CheckSquare size={64} color="#E5E7EB" />
+            <CheckSquare size={64} color="#9CA3AF" />
           </View>
         }
         contentContainerStyle={sections.length === 0 ? { flex: 1 } : { paddingBottom: 30 }}
@@ -180,6 +196,68 @@ export default function LogbookScreen() {
                 }}
               >
                 <AppText className="text-center text-blue-500 font-medium">Mark as Not Done</AppText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Floating Action Button */}
+      <TouchableOpacity 
+        className="absolute bottom-6 right-6 bg-blue-500 rounded-full w-[52px] h-[52px] flex items-center justify-center shadow-lg"
+        onPress={() => setModalVisible(true)}
+      >
+        <View className="flex-col items-center">
+          <Plus size={28} color="white" strokeWidth={2.5} />
+        </View>
+      </TouchableOpacity>
+      
+      {/* Add Task Modal */}
+      <Modal
+        visible={modalVisible}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View className="flex-1 items-center justify-center bg-black/50">
+          <View className="bg-white rounded-2xl mx-6 w-[85%] p-6">
+            <View className="flex-row justify-between items-center mb-4">
+              <AppText className="text-xl font-semibold text-gray-900">New Task</AppText>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <X size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+      
+            <TextInput
+              className="border-b border-gray-300 py-3 text-base text-gray-900 mb-4"
+              placeholder="Task title"
+              placeholderTextColor="#9CA3AF"
+              value={taskTitle}
+              onChangeText={setTaskTitle}
+              autoFocus
+            />
+      
+            <TextInput
+              className="border-b border-gray-300 py-3 text-base text-gray-900 mb-6"
+              placeholder="Notes"
+              placeholderTextColor="#9CA3AF"
+              value={taskNotes}
+              onChangeText={setTaskNotes}
+              multiline
+            />
+      
+            <View className="flex-row gap-3">
+              <TouchableOpacity 
+                className="flex-1 bg-gray-100 py-3 rounded-lg"
+                onPress={() => setModalVisible(false)}
+              >
+                <AppText className="text-center text-gray-700 font-medium">Cancel</AppText>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                className="flex-1 bg-blue-500 py-3 rounded-lg"
+                onPress={handleAddTask}
+              >
+                <AppText className="text-center text-white font-medium">Add</AppText>
               </TouchableOpacity>
             </View>
           </View>

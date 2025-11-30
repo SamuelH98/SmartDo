@@ -13,6 +13,14 @@ export default function Layout() {
         }}
       />
       <Stack.Screen 
+        name="today" 
+        options={{
+          title: "",
+          headerShown: true,
+          headerShadowVisible: false,
+        }}
+      />
+      <Stack.Screen 
         name="logbook" 
         options={{
           title: "",

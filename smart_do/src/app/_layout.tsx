@@ -2,7 +2,7 @@ import { Stack } from "expo-router";
 import "../../global.css";
 import React from "react";
 import { TasksProvider } from "@/context/TasksContext";
-import { ProjectsProvider } from '@/context/ProjectsContext';
+import { AreasProvider } from '@/context/AreasContext';
 
 export const unstable_settings = {
   initialRouteName: "(tabs)",
@@ -11,7 +11,7 @@ export const unstable_settings = {
 export default function RootLayout() {
   return (
     <TasksProvider>
-      <ProjectsProvider>
+      <AreasProvider>
         <Stack>
           <Stack.Screen
             name="(tabs)"
@@ -20,7 +20,7 @@ export default function RootLayout() {
             }}
           />
         </Stack>
-      </ProjectsProvider>
+      </AreasProvider>
     </TasksProvider>
   );
 }

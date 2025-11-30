@@ -17,7 +17,8 @@ interface TasksContextType {
   tasks: Task[];
   addTask: (title: string, notes: string) => void;
   removeTask: (id: string) => void;
-  toggleTaskCompletion: (id: string) => void; // Added this
+  toggleTaskCompletion: (id: string) => void;
+  updateTask: (id: string, title: string, notes: string) => void;
   loading: boolean;
 }
 
@@ -78,15 +79,27 @@ export function TasksProvider({ children }: { children: React.ReactNode }) {
     setTasks(prev => prev.filter(task => task.id !== id));
   };
 
-  // New function to handle checking/unchecking
   const toggleTaskCompletion = (id: string) => {
     setTasks(prev => prev.map(task => 
       task.id === id ? { ...task, completed: !task.completed } : task
     ));
   };
 
+  const updateTask = (id: string, title: string, notes: string) => {
+    setTasks(prev => prev.map(task => 
+      task.id === id 
+        ? { 
+            ...task, 
+            sender: title,
+            subject: notes || "No notes",
+            preview: notes || ""
+          } 
+        : task
+    ));
+  };
+
   return (
-    <TasksContext.Provider value={{ tasks, addTask, removeTask, toggleTaskCompletion, loading }}>
+    <TasksContext.Provider value={{ tasks, addTask, removeTask, toggleTaskCompletion, updateTask, loading }}>
       {children}
     </TasksContext.Provider>
   );
