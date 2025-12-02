@@ -106,7 +106,7 @@ export default function InboxScreen() {
               )}
             </TouchableOpacity>
             <TextInput
-              className="flex-1 text-base text-gray-900"
+              className="flex-1 text-xl text-gray-900"
               placeholder="Task title"
               placeholderTextColor="#9CA3AF"
               value={taskTitle}
@@ -164,11 +164,11 @@ export default function InboxScreen() {
     
     return (
       <TouchableOpacity 
-        className="flex-row px-4 py-3 border-b border-gray-100 bg-white active:bg-gray-50"
+        className="flex-row px-4 py-1   bg-white active:bg-gray-50"
         onPress={() => handleTaskSelect(item)}
       >
         <TouchableOpacity 
-          className="w-5 h-5 rounded border-2 border-gray-400 justify-center items-center mr-3 mt-0.5"
+          className="w-5 h-5 rounded border-2 border-gray-400 justify-center items-center mr-3 mt-0.5 "
           onPress={(e) => {
             e.stopPropagation();
             handleToggleComplete(item.id, e);
@@ -179,11 +179,10 @@ export default function InboxScreen() {
           )}
         </TouchableOpacity>
         <View className="flex-1">
-          <View className="flex-row justify-between items-center">
-            <AppText className="text-gray-900 font-medium text-base">
+          <View className="flex-row justify-between items-center  ">
+            <AppText className="text-gray-900 font-medium text-xl">
               {item.sender}
             </AppText>
-            <AppText className="text-gray-400 text-xs ml-2">{item.time}</AppText>
           </View>
           {item.preview ? (
             <AppText className="text-gray-500 text-sm mt-0.5" numberOfLines={1}>
@@ -216,7 +215,7 @@ export default function InboxScreen() {
       <View className="flex-1 bg-white">
       {/* Header */}
       <View className="px-4 py-6 border-gray-100 flex-row items-center">
-        <Inbox size={24} color="#3b82f6" />
+        <Inbox size={32} color="#3b82f6" />
         <AppText className="text-3xl font-semibold text-gray-900 ml-3 mt-2">Inbox</AppText>
       </View>
 
@@ -226,7 +225,7 @@ export default function InboxScreen() {
           <View className="flex-row items-center mb-3">
             <View className="w-5 h-5 rounded border-2 border-gray-400 mr-3" />
             <TextInput
-              className="flex-1 text-base text-gray-900"
+              className="flex-1 text-xl text-gray-900"
               placeholder="New To-Do"
               placeholderTextColor="#9CA3AF"
               value={taskTitle}

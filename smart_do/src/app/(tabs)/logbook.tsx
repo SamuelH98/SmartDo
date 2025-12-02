@@ -124,7 +124,7 @@ export default function LogbookScreen() {
     <View className="flex-1 bg-white">
       {/* Header */}
       <View className="px-4 py-6  flex-row items-center bg-white">
-        <CheckSquare size={24} color="#4ade80" />
+        <CheckSquare size={32} color="#4ade80" />
         <AppText className="text-3xl font-semibold text-gray-900 ml-3 mt-2">Logbook</AppText>
       </View>
 

@@ -126,7 +126,7 @@ export default function TodayScreen() {
     <View className="flex-1 bg-white">
       {/* Header */}
       <View className="px-4 py-6 flex-row items-center bg-white">
-        <Star size={24} color="#facc15" />
+        <Star size={32} color="#facc15" />
         <AppText className="text-3xl font-semibold text-gray-900 ml-3 mt-2">Today</AppText>
       </View>
 

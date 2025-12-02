@@ -21,6 +21,14 @@ export default function Layout() {
         }}
       />
       <Stack.Screen 
+        name="upcoming" 
+        options={{
+          title: "",
+          headerShown: true,
+          headerShadowVisible: false,
+        }}
+      />
+      <Stack.Screen 
         name="logbook" 
         options={{
           title: "",
