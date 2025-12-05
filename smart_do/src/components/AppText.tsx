@@ -8,6 +8,8 @@ type AppTextProps = {
   color?: "primary" | "secondary" | "tertiary";
   center?: boolean;
   className?: string;
+  style?: any;
+  numberOfLines?: number;
 };
 
 export function AppText({
@@ -17,6 +19,8 @@ export function AppText({
   color = "primary",
   center = false,
   className,
+  style,
+  numberOfLines,
 }: AppTextProps) {
   return (
     <Text
@@ -32,6 +36,8 @@ export function AppText({
         center && "text-center",
         className,
       )}
+      style={style}
+      numberOfLines={numberOfLines}
     >
       {children}
     </Text>

@@ -1,434 +1,818 @@
-import { View, Modal, ScrollView, TouchableOpacity, TextInput, TouchableWithoutFeedback } from "react-native";
+import {
+  View,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  TouchableWithoutFeedback,
+  StyleSheet,
+} from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  Inbox, Star, Calendar, Layers, Archive, CheckSquare, Circle,
-  Settings, Plus, Search, X, Trash2, Check,
+  Inbox,
+  Star,
+  Calendar,
+  Layers,
+  Archive,
+  CheckSquare,
+  Circle,
+  Settings,
+  Plus,
+  Search,
+  X,
+  Trash2,
+  Box,
+  Moon,
+  Sun,
 } from "lucide-react-native";
 import { useAreas } from "@/context/AreasContext";
 import { useTasks } from "@/context/TasksContext";
+import { useTheme } from "@/context/ThemeContext";
 
 export default function IndexScreen() {
   const router = useRouter();
-  const { areas, addArea, deleteArea, addTaskToArea, deleteTaskFromArea, toggleTaskCompletion } = useAreas();
-  const { tasks } = useTasks();
+  const { theme, isDark, toggleTheme } = useTheme();
+  const {
+    areas,
+    addArea,
+    deleteArea,
+    addTaskToArea,
+    deleteTaskFromArea,
+    toggleTaskCompletion,
+  } = useAreas();
+  const {
+    tasks,
+    addTask,
+    toggleTaskCompletion: toggleInboxTaskCompletion,
+  } = useTasks();
   const [newAreaModalVisible, setNewAreaModalVisible] = useState(false);
-  const [areaDetailsModalVisible, setAreaDetailsModalVisible] = useState(false);
-  const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null);
-  const [newAreaName, setNewAreaName] = useState('');
-  const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [selectedList, setSelectedList] = useState('inbox');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [newAreaName, setNewAreaName] = useState("");
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [selectedList, setSelectedList] = useState("inbox");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
 
   const lists = [
-    { id: 'inbox', icon: Inbox, label: 'Inbox', color: '#3b82f6', action: () => router.push('/inbox') },
-    { id: 'today', icon: Star, label: 'Today', color: '#facc15', action: () => router.push('/today') },
-    { id: 'upcoming', icon: Calendar, label: 'Upcoming', color: '#ec4899', action: () => router.push('/upcoming') },
-    { id: 'anytime', icon: Layers, label: 'Anytime', color: '#22d3ee' },
-    { id: 'someday', icon: Archive, label: 'Someday', color: '#d1d5db' },
-    { id: 'logbook', icon: CheckSquare, label: 'Logbook', color: '#4ade80', isLast: true, action: () => router.push('/logbook') },
+    {
+      id: "inbox",
+      icon: Inbox,
+      label: "Inbox",
+      color: "#3b82f6",
+      action: () => router.push("/inbox"),
+      showTotal: true,
+    },
+    {
+      id: "today",
+      icon: Star,
+      label: "Today",
+      color: "#facc15",
+      action: () => router.push("/today"),
+      showBadge: true,
+      showTotal: true,
+    },
+    {
+      id: "upcoming",
+      icon: Calendar,
+      label: "Upcoming",
+      color: "#ec4899",
+      action: () => router.push("/upcoming"),
+    },
+    {
+      id: "anytime",
+      icon: Layers,
+      label: "Anytime",
+      color: "#22d3ee",
+      action: () => router.push("/anytime"),
+    },
+    {
+      id: "someday",
+      icon: Archive,
+      label: "Someday",
+      color: "#d1d5db",
+      action: () => router.push("/someday"),
+    },
+    {
+      id: "logbook",
+      icon: CheckSquare,
+      label: "Logbook",
+      color: "#4ade80",
+      isLast: true,
+      action: () => router.push("/logbook"),
+    },
   ];
-
-  const selectedArea = areas.find(a => a.id === selectedAreaId);
 
   const handleCreateArea = () => {
     if (newAreaName.trim()) {
       addArea(newAreaName);
-      setNewAreaName('');
+      setNewAreaName("");
       setNewAreaModalVisible(false);
     }
   };
 
-  const handleDeleteArea = (id: string) => {
-    deleteArea(id);
-    setAreaDetailsModalVisible(false);
-    setSelectedAreaId(null);
-  };
-
-  const handleAddTaskToArea = () => {
-    if (selectedAreaId && newTaskTitle.trim()) {
-      addTaskToArea(selectedAreaId, newTaskTitle);
-      setNewTaskTitle('');
-      setAddTaskVisible(false);
-    }
-  };
-
-  const [addTaskVisible, setAddTaskVisible] = useState(false);
-
-  const handleToggleTaskCompletion = (taskId: string) => {
-    if (selectedAreaId) {
-      toggleTaskCompletion(selectedAreaId, taskId);
-    }
-  };
-
-  const handleDeleteTask = (taskId: string) => {
-    if (selectedAreaId) {
-      deleteTaskFromArea(selectedAreaId, taskId);
-    }
-  };
-
   const openAreaDetails = (areaId: string) => {
-    setSelectedAreaId(areaId);
-    setAreaDetailsModalVisible(true);
-    setAddTaskVisible(false);
-  };
-
-  const handleCloseAreaDetails = () => {
-    setAreaDetailsModalVisible(false);
-    setSelectedAreaId(null);
-    setAddTaskVisible(false);
-    setNewTaskTitle('');
+    router.push(`/area?areaId=${areaId}`);
   };
 
   // Search functionality
   const getSearchResults = () => {
-    if (!searchQuery.trim()) return { inboxTasks: [], areas: [], areaTasks: [] };
+    if (!searchQuery.trim())
+      return { inboxTasks: [], areas: [], areaTasks: [] };
 
     const query = searchQuery.toLowerCase();
-    
+
     // Search inbox tasks
-    const matchedInboxTasks = tasks.filter(task => 
-      task.sender.toLowerCase().includes(query) || 
-      task.preview.toLowerCase().includes(query)
+    const matchedInboxTasks = tasks.filter(
+      (task) =>
+        task.sender.toLowerCase().includes(query) ||
+        task.preview.toLowerCase().includes(query),
     );
 
     // Search areas
-    const matchedAreas = areas.filter(area => 
-      area.name.toLowerCase().includes(query)
+    const matchedAreas = areas.filter((area) =>
+      area.name.toLowerCase().includes(query),
     );
 
     // Search tasks within areas
-    const matchedAreaTasks: Array<{ areaName: string; areaId: string; task: any }> = [];
-    areas.forEach(area => {
-      area.tasks.forEach(task => {
+    const matchedAreaTasks: { areaName: string; areaId: string; task: any }[] =
+      [];
+    areas.forEach((area) => {
+      area.tasks.forEach((task) => {
         if (task.title.toLowerCase().includes(query)) {
           matchedAreaTasks.push({
             areaName: area.name,
             areaId: area.id,
-            task
+            task,
           });
         }
       });
     });
 
-    return { inboxTasks: matchedInboxTasks, areas: matchedAreas, areaTasks: matchedAreaTasks };
+    return {
+      inboxTasks: matchedInboxTasks,
+      areas: matchedAreas,
+      areaTasks: matchedAreaTasks,
+    };
   };
 
   const searchResults = getSearchResults();
 
+  // Count tasks created today
+  const getTasksCreatedTodayCount = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Start of today
+
+    return tasks.filter((task) => {
+      const taskDate = new Date(task.timestamp);
+      taskDate.setHours(0, 0, 0, 0); // Start of task day
+      return taskDate.getTime() === today.getTime();
+    }).length;
+  };
+
+  const tasksCreatedTodayCount = getTasksCreatedTodayCount();
+
+  // Calculate inbox tasks count (only for Inbox row)
+  const getInboxTasksCount = () => {
+    return tasks.filter((task) => !task.completed).length;
+  };
+
+  // Calculate total incomplete tasks across all areas (for Today row)
+  const getTotalIncompleteTasks = () => {
+    const inboxCount = tasks.filter((task) => !task.completed).length;
+    const areasCount = areas.reduce(
+      (sum, a) => sum + a.tasks.filter((t) => !t.completed).length,
+      0,
+    );
+    return inboxCount + areasCount;
+  };
+
   return (
-    <TouchableWithoutFeedback onPress={() => {
-      if (newAreaModalVisible) {
-        setNewAreaModalVisible(false);
-        setNewAreaName('');
-      }
-    }}>
-      <View className="flex-1 bg-white">
-        {/* Status Bar Area */}
-        <View className="h-16" />
+    <SafeAreaProvider>
+      <TouchableWithoutFeedback
+        onPress={() => {
+          if (newAreaModalVisible) {
+            setNewAreaModalVisible(false);
+            setNewAreaName("");
+          }
+        }}
+      >
+        <SafeAreaView
+          style={[styles.container, { backgroundColor: theme.background }]}
+        >
+          {/* Status Bar Area */}
+          <View style={styles.statusBarArea} />
 
-        {/* Search Bar */}
-        <View className="px-5 pb-5">
-          <View className="bg-gray-100 rounded-xl h-12 flex-row items-center px-4">
-            <Search size={20} color="#7F8082" style={{ marginRight: 8 }} />
-            <TextInput
-              className="flex-1 text-base text-gray-900 text-center"
-              placeholder="Quick Find"
-              placeholderTextColor="#7F8082"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              onFocus={() => setIsSearching(true)}
-              returnKeyType="search"
-              style={{ textAlign: searchQuery ? 'left' : 'center' }}
-            />
-            {searchQuery.length > 0 ? (
-              <TouchableOpacity onPress={() => {
-                setSearchQuery('');
-                setIsSearching(false);
-              }}>
-                <X size={18} color="#9CA3AF" />
-              </TouchableOpacity>
-            ) : (
-              <View style={{ width: 18 }} />
-            )}
-          </View>
-        </View>
-
-        {/* Lists */}
-        <ScrollView className="flex-1 px-3">
-          {isSearching && searchQuery.trim() !== '' ? (
-            // Search Results View
-            <>
-              {searchQuery.trim() === '' ? (
-                <AppText className="text-gray-400 text-center py-8">
-                  Start typing to search...
-                </AppText>
-              ) : (
-                <>
-                  {/* Inbox Tasks Results */}
-                  {searchResults.inboxTasks.length > 0 && (
-                    <View className="mb-6">
-                      <AppText className="text-sm font-semibold text-gray-500 mb-3 uppercase px-4">
-                        Inbox Tasks ({searchResults.inboxTasks.length})
-                      </AppText>
-                      {searchResults.inboxTasks.map((task) => (
-                        <TouchableOpacity
-                          key={task.id}
-                          onPress={() => {
-                            setSearchQuery('');
-                            setIsSearching(false);
-                            router.push('/inbox');
-                          }}
-                          className="bg-white border border-gray-200 rounded-lg p-4 mb-2 mx-1"
-                        >
-                          <AppText className="text-base font-medium text-gray-900 mb-1">
-                            {task.sender}
-                          </AppText>
-                          <AppText className="text-sm text-gray-500" numberOfLines={2}>
-                            {task.preview}
-                          </AppText>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
-
-                  {/* Areas Results */}
-                  {searchResults.areas.length > 0 && (
-                    <View className="mb-6">
-                      <AppText className="text-sm font-semibold text-gray-500 mb-3 uppercase px-4">
-                        Areas ({searchResults.areas.length})
-                      </AppText>
-                      {searchResults.areas.map((area) => (
-                        <TouchableOpacity
-                          key={area.id}
-                          onPress={() => {
-                            setSearchQuery('');
-                            setIsSearching(false);
-                            openAreaDetails(area.id);
-                          }}
-                          className="bg-white border border-gray-200 rounded-lg p-4 mb-2 flex-row items-center mx-1"
-                        >
-                          <Circle size={24} color="#7F8082" />
-                          <View className="flex-1 ml-3">
-                            <AppText className="text-base font-medium text-gray-900">
-                              {area.name}
-                            </AppText>
-                            <AppText className="text-sm text-gray-500">
-                              {area.tasks.length} {area.tasks.length === 1 ? 'task' : 'tasks'}
-                            </AppText>
-                          </View>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
-
-                  {/* Area Tasks Results */}
-                  {searchResults.areaTasks.length > 0 && (
-                    <View className="mb-6">
-                      <AppText className="text-sm font-semibold text-gray-500 mb-3 uppercase px-4">
-                        Tasks in Areas ({searchResults.areaTasks.length})
-                      </AppText>
-                      {searchResults.areaTasks.map((result, index) => (
-                        <TouchableOpacity
-                          key={`${result.areaId}-${result.task.id}`}
-                          onPress={() => {
-                            setSearchQuery('');
-                            setIsSearching(false);
-                            openAreaDetails(result.areaId);
-                          }}
-                          className="bg-white border border-gray-200 rounded-lg p-4 mb-2 mx-1"
-                        >
-                          <AppText className="text-xs text-gray-400 mb-2">
-                            {result.areaName}
-                          </AppText>
-                          <AppText className="text-base font-medium text-gray-900">
-                            {result.task.title}
-                          </AppText>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
-
-                  {/* No Results */}
-                  {searchResults.inboxTasks.length === 0 && 
-                   searchResults.areas.length === 0 && 
-                   searchResults.areaTasks.length === 0 && (
-                    <AppText className="text-gray-400 text-center py-8">
-                      No results found for "{searchQuery}"
-                    </AppText>
-                  )}
-                </>
+          {/* Search Bar */}
+          <View style={styles.searchBarContainer}>
+            <View
+              style={[styles.searchBar, { backgroundColor: theme.borderLight }]}
+            >
+              {/* 1. Left Icon: Only visible when typing or focused */}
+              {(isSearching || searchQuery.length > 0) && (
+                <Search size={20} color="#7F8082" style={styles.searchIcon} />
               )}
-            </>
-          ) : (
-            // Normal Lists View
-            <>
-              {lists.map((list) => {
-            const Icon = list.icon;
-            return (
-              <TouchableOpacity
-                key={list.id}
-                onPress={() => {
-                  setSelectedList(list.id);
-                  if (list.action) list.action();
-                }}
-                className="flex-row items-center px-4 py-2 rounded-lg mb-1"
-              >
-                <Icon size={26} color={list.color} />
-                <AppText className="text-gray-900 font-medium ml-3 mt-2 text-lg leading-none">
-                  {list.label}
-                </AppText>
-              </TouchableOpacity>
-            );
-          })}
 
-          <View className="border-b border-gray-300 my-3 mx-3" />
-
-          {/* Areas Section */}
-
-          {/* Inline New Area Card */}
-          {newAreaModalVisible && (
-            <View className="mb-4 bg-white px-4 py-5 shadow-sm border border-gray-200 rounded-lg mx-1">
-              <View className="flex-row items-center mb-3">
-                <Circle size={26} color="#7F8082" />
-                <TextInput
-                  className="flex-1 text-base text-gray-900 ml-3"
-                  placeholder="New Area"
-                  placeholderTextColor="#9CA3AF"
-                  value={newAreaName}
-                  onChangeText={setNewAreaName}
-                  onSubmitEditing={handleCreateArea}
-                  autoFocus
-                  returnKeyType="done"
-                  blurOnSubmit={true}
-                />
-              </View>
-            </View>
-          )}
-
-          {areas.length === 0 && !newAreaModalVisible ? (
-            <AppText className="text-gray-400 text-sm px-4 py-2">
-              No areas yet
-            </AppText>
-          ) : (
-            areas.map((area) => (
-              <TouchableOpacity
-                key={area.id}
-                onPress={() => openAreaDetails(area.id)}
-                className="flex-row items-center px-4 py-2 rounded-lg mb-1"
-              >
-                <Circle size={26} color="#7F8082" />
-                <View className="flex-1 ml-3">
-                  <AppText className="text-gray-900 font-medium ml-3 mt-2 text-lg leading-none">
-                    {area.name}
+              {/* 2. Centered Overlay: Visible when NOT focused and empty */}
+              {/* pointerEvents="none" allows clicks to pass through to the input behind it */}
+              {!isSearching && searchQuery.length === 0 && (
+                <View style={styles.centeredOverlay} pointerEvents="none">
+                  <Search size={20} color="#7F8082" />
+                  <AppText
+                    style={[
+                      styles.centeredPlaceholderText,
+                      {
+                        color: theme.textSecondary,
+                      },
+                    ]}
+                  >
+                    Quick Find
                   </AppText>
                 </View>
-              </TouchableOpacity>
-            ))
-          )}
-            </>
-          )}
-        </ScrollView>
+              )}
 
-        {/* Bottom Bar */}
-        <View className="px-5 pb-8 flex-row items-center justify-between">
-          <TouchableOpacity className="flex-row justify-center">
-            <Settings size={24} color="#9CA3AF" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setNewAreaModalVisible(true)}
-            className="bg-blue-500 rounded-full w-[52px] h-[52px] flex items-center justify-center shadow-lg"
-          >
-            <View className="flex-col items-center">
-              <Plus size={28} color="white" strokeWidth={2.5} />
-            </View>
-          </TouchableOpacity>
-        </View>
+              {/* 3. The Input Field */}
+              <TextInput
+                style={[styles.searchInput, { color: theme.text }]}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onFocus={() => setIsSearching(true)}
+                onBlur={() => {
+                  // Return to centered state if empty when clicking away
+                  if (searchQuery.length === 0) setIsSearching(false);
+                }}
+                returnKeyType="search"
+              />
 
-        {/* Area Details Modal */}
-        <Modal
-          visible={areaDetailsModalVisible}
-          animationType="slide"
-          onRequestClose={handleCloseAreaDetails}
-        >
-          <TouchableWithoutFeedback onPress={() => {
-            if (addTaskVisible) {
-              setAddTaskVisible(false);
-              setNewTaskTitle('');
-            }
-          }}>
-            <View className="flex-1 bg-white pt-12">
-              {/* Header */}
-              <View className="px-5 pb-4 border-b border-gray-200 flex-row items-center justify-between">
-                <TouchableOpacity onPress={handleCloseAreaDetails}>
-                  <X size={24} color="#6B7280" />
-                </TouchableOpacity>
-                <AppText className="text-2xl font-bold text-gray-900 flex-1 ml-4">
-                  {selectedArea?.name}
-                </AppText>
+              {/* 4. Clear Button */}
+              {searchQuery.length > 0 ? (
                 <TouchableOpacity
-                  onPress={() => selectedAreaId && handleDeleteArea(selectedAreaId)}
+                  onPress={() => {
+                    setSearchQuery("");
+                    // Optional: Keep focus or dismiss keyboard depending on preference
+                    // setIsSearching(false);
+                  }}
                 >
-                  <Trash2 size={24} color="#EF4444" />
+                  <X size={18} color="#9CA3AF" />
                 </TouchableOpacity>
-              </View>
+              ) : (
+                // Add spacer only when searching to keep input from hitting the edge
+                isSearching && <View style={styles.clearButtonSpacer} />
+              )}
+            </View>
+          </View>
 
-              {/* Tasks List */}
-              <ScrollView className="flex-1 px-5 py-4">
-                {selectedArea?.tasks.length === 0 && !addTaskVisible ? (
-                  <AppText className="text-gray-400 text-center py-8">
-                    No tasks yet
+          {/* Lists */}
+          <ScrollView style={styles.scrollView}>
+            {isSearching && searchQuery.trim() !== "" ? (
+              // Search Results View
+              <>
+                {searchQuery.trim() === "" ? (
+                  <AppText
+                    style={[styles.noResults, { color: theme.textTertiary }]}
+                  >
+                    Start typing to search...
                   </AppText>
                 ) : (
                   <>
-                    {selectedArea?.tasks.map((task) => (
-                      <TouchableOpacity
-                        key={task.id}
-                        className="flex-row items-center px-4 py-3 border-b border-gray-100 bg-white active:bg-gray-50"
-                      >
-                        <TouchableOpacity
-                          onPress={() => handleToggleTaskCompletion(task.id)}
-                          className="w-5 h-5 rounded border-2 border-gray-400 justify-center items-center mr-3"
-                        >
-                          {task.completed && (
-                            <View className="w-3 h-3 rounded-sm bg-blue-500" />
-                          )}
-                        </TouchableOpacity>
+                    {/* Inbox Tasks Results */}
+                    {searchResults.inboxTasks.length > 0 && (
+                      <View style={styles.searchSection}>
                         <AppText
-                          className={`flex-1 text-base ${
-                            task.completed
-                              ? 'text-gray-400 line-through'
-                              : 'text-gray-900'
-                          }`}
+                          style={[
+                            styles.sectionTitle,
+                            { color: theme.textSecondary },
+                          ]}
                         >
-                          {task.title}
+                          Inbox Tasks ({searchResults.inboxTasks.length})
                         </AppText>
-                        <TouchableOpacity onPress={() => handleDeleteTask(task.id)}>
-                          <X size={20} color="#9CA3AF" />
-                        </TouchableOpacity>
-                      </TouchableOpacity>
-                    ))}
+                        {searchResults.inboxTasks.map((task) => (
+                          <TouchableOpacity
+                            key={task.id}
+                            onPress={() => {
+                              setSearchQuery("");
+                              setIsSearching(false);
+                              router.push("/inbox");
+                            }}
+                            style={[
+                              styles.searchResultItem,
+                              {
+                                backgroundColor: theme.card,
+                                borderColor: theme.border,
+                              },
+                            ]}
+                          >
+                            <AppText
+                              style={[styles.taskTitle, { color: theme.text }]}
+                            >
+                              {task.sender}
+                            </AppText>
+                            <AppText
+                              style={[
+                                styles.taskPreview,
+                                { color: theme.textSecondary },
+                              ]}
+                              numberOfLines={2}
+                            >
+                              {task.preview}
+                            </AppText>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+
+                    {/* Areas Results */}
+                    {searchResults.areas.length > 0 && (
+                      <View style={styles.searchSection}>
+                        <AppText
+                          style={[
+                            styles.sectionTitle,
+                            { color: theme.textSecondary },
+                          ]}
+                        >
+                          Areas ({searchResults.areas.length})
+                        </AppText>
+                        {searchResults.areas.map((area) => (
+                          <TouchableOpacity
+                            key={area.id}
+                            onPress={() => {
+                              setSearchQuery("");
+                              setIsSearching(false);
+                              openAreaDetails(area.id);
+                            }}
+                            style={[
+                              styles.searchResultItemWithRow,
+                              {
+                                backgroundColor: theme.card,
+                                borderColor: theme.border,
+                              },
+                            ]}
+                          >
+                            <Circle size={24} color="#7F8082" />
+                            <View style={styles.areaInfo}>
+                              <AppText
+                                style={[styles.areaName, { color: theme.text }]}
+                              >
+                                {area.name}
+                              </AppText>
+                              <AppText
+                                style={[
+                                  styles.taskCount,
+                                  { color: theme.textSecondary },
+                                ]}
+                              >
+                                {area.tasks.length}{" "}
+                                {area.tasks.length === 1 ? "task" : "tasks"}
+                              </AppText>
+                            </View>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+
+                    {/* Area Tasks Results */}
+                    {searchResults.areaTasks.length > 0 && (
+                      <View style={styles.searchSection}>
+                        <AppText
+                          style={[
+                            styles.sectionTitle,
+                            { color: theme.textSecondary },
+                          ]}
+                        >
+                          Tasks in Areas ({searchResults.areaTasks.length})
+                        </AppText>
+                        {searchResults.areaTasks.map((result, index) => (
+                          <TouchableOpacity
+                            key={`${result.areaId}-${result.task.id}`}
+                            onPress={() => {
+                              setSearchQuery("");
+                              setIsSearching(false);
+                              openAreaDetails(result.areaId);
+                            }}
+                            style={[
+                              styles.searchResultItem,
+                              {
+                                backgroundColor: theme.card,
+                                borderColor: theme.border,
+                              },
+                            ]}
+                          >
+                            <AppText
+                              style={[
+                                styles.areaTaskArea,
+                                { color: theme.textTertiary },
+                              ]}
+                            >
+                              {result.areaName}
+                            </AppText>
+                            <AppText
+                              style={[styles.taskTitle, { color: theme.text }]}
+                            >
+                              {result.task.title}
+                            </AppText>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+
+                    {/* No Results */}
+                    {searchResults.inboxTasks.length === 0 &&
+                      searchResults.areas.length === 0 &&
+                      searchResults.areaTasks.length === 0 && (
+                        <AppText
+                          style={[
+                            styles.noResults,
+                            { color: theme.textTertiary },
+                          ]}
+                        >
+                          No results found for "{searchQuery}"
+                        </AppText>
+                      )}
                   </>
                 )}
-              </ScrollView>
+              </>
+            ) : (
+              // Normal Lists View
+              <>
+                {lists.map((list) => {
+                  const Icon = list.icon;
+                  const shouldShowBadge =
+                    list.showBadge && tasksCreatedTodayCount > 0;
 
-              {/* Floating Action Button - only show when not adding a task */}
-              {!addTaskVisible && (
-                <TouchableOpacity 
-                  className="absolute bottom-6 right-6 bg-blue-500 rounded-full w-[52px] h-[52px] flex items-center justify-center shadow-lg"
-                  onPress={() => setAddTaskVisible(true)}
-                >
-                  <View className="flex-col items-center">
-                    <Plus size={28} color="white" strokeWidth={2.5} />
+                  return (
+                    <TouchableOpacity
+                      key={list.id}
+                      onPress={() => {
+                        setSelectedList(list.id);
+                        if (list.action) list.action();
+                      }}
+                      style={styles.listItem}
+                    >
+                      <Icon size={26} color={list.color} />
+                      <AppText style={[styles.listText, { color: theme.text }]}>
+                        {list.label}
+                      </AppText>
+                      <View style={styles.countContainer}>
+                        {shouldShowBadge && (
+                          <View style={styles.badge}>
+                            <AppText style={styles.badgeText}>
+                              {tasksCreatedTodayCount}
+                            </AppText>
+                          </View>
+                        )}
+                        {list.showTotal &&
+                          (list.id === "inbox"
+                            ? getInboxTasksCount()
+                            : getTotalIncompleteTasks()) > 0 && (
+                            <AppText
+                              style={[
+                                styles.totalCount,
+                                { color: theme.textSecondary },
+                              ]}
+                            >
+                              {list.id === "inbox"
+                                ? getInboxTasksCount()
+                                : getTotalIncompleteTasks()}
+                            </AppText>
+                          )}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+
+                <View style={[styles.divider, { borderColor: theme.border }]} />
+
+                {/* Areas Section */}
+
+                {/* Inline New Area Card */}
+                {newAreaModalVisible && (
+                  <View
+                    style={[
+                      styles.newAreaCard,
+                      {
+                        backgroundColor: theme.card,
+                        borderColor: theme.border,
+                      },
+                    ]}
+                  >
+                    <View style={styles.newAreaInputRow}>
+                      <Circle size={26} color="#7F8082" />
+                      <TextInput
+                        style={styles.newAreaInput}
+                        placeholder="New Area"
+                        placeholderTextColor={theme.textTertiary}
+                        value={newAreaName}
+                        onChangeText={setNewAreaName}
+                        onSubmitEditing={handleCreateArea}
+                        autoFocus
+                        returnKeyType="done"
+                        blurOnSubmit={true}
+                      />
+                    </View>
                   </View>
-                </TouchableOpacity>
-              )}
+                )}
+
+                {areas.length === 0 && !newAreaModalVisible ? (
+                  <AppText
+                    style={[styles.noAreas, { color: theme.textTertiary }]}
+                  >
+                    No areas yet
+                  </AppText>
+                ) : (
+                  areas.map((area) => (
+                    <TouchableOpacity
+                      key={area.id}
+                      onPress={() => openAreaDetails(area.id)}
+                      style={[styles.areaItem, { borderColor: theme.border }]}
+                    >
+                      <Box size={26} color="#7F8082" />
+                      <View style={styles.areaItemContent}>
+                        <AppText
+                          style={[styles.areaItemText, { color: theme.text }]}
+                        >
+                          {area.name}
+                        </AppText>
+                      </View>
+                    </TouchableOpacity>
+                  ))
+                )}
+              </>
+            )}
+          </ScrollView>
+
+          {/* Floating Action Buttons */}
+          <TouchableOpacity
+            style={styles.settingsFloatingButton}
+            onPress={() => router.push("/settings")}
+          >
+            <Settings size={24} color={theme.textSecondary} />
+            <AppText
+              style={[
+                styles.settingsButtonText,
+                { color: theme.textSecondary },
+              ]}
+            >
+              Settings
+            </AppText>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.floatingButton}
+            onPress={() => setNewAreaModalVisible(true)}
+          >
+            <View style={styles.addButtonContent}>
+              <Plus size={28} color="white" strokeWidth={2.5} />
             </View>
-          </TouchableWithoutFeedback>
-        </Modal>
-      </View>
-    </TouchableWithoutFeedback>
+          </TouchableOpacity>
+        </SafeAreaView>
+      </TouchableWithoutFeedback>
+    </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  statusBarArea: {
+    height: 48,
+  },
+  searchBarContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  searchBar: {
+    borderRadius: 12,
+    height: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    position: "relative",
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  centeredOverlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+  },
+  centeredPlaceholderText: {
+    fontSize: 16,
+    marginLeft: 8,
+    marginTop: 10,
+  },
+  centeredText: {
+    lineHeight: 16,
+  },
+  clearButtonSpacer: {
+    width: 18,
+  },
+  scrollView: {
+    flex: 1,
+    paddingHorizontal: 12,
+  },
+  searchSection: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 12,
+    textTransform: "uppercase",
+    paddingHorizontal: 16,
+  },
+  searchResultItem: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 8,
+    marginHorizontal: 4,
+  },
+  searchResultItemWithRow: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 8,
+    marginHorizontal: 4,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  taskTitle: {
+    fontSize: 16,
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+  taskPreview: {
+    fontSize: 14,
+  },
+  areaInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  areaName: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  taskCount: {
+    fontSize: 14,
+  },
+  areaTaskArea: {
+    fontSize: 12,
+    marginBottom: 8,
+  },
+  noResults: {
+    textAlign: "center",
+    paddingVertical: 32,
+  },
+  listItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 4,
+  },
+  listText: {
+    fontWeight: "500",
+    marginLeft: 12,
+    marginTop: 8,
+    fontSize: 18,
+    lineHeight: 24,
+    flex: 1,
+  },
+  countContainer: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    justifyContent: "flex-end",
+  },
+  badge: {
+    backgroundColor: "#EF4444",
+    borderRadius: 14,
+    minWidth: 28,
+    height: 32,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    textAlign: "center",
+    lineHeight: 28,
+  },
+  badgeText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
+    includeFontPadding: false,
+    marginTop: 3.5,
+  },
+  totalCount: {
+    fontSize: 16,
+    fontWeight: "500",
+    marginTop: 4,
+  },
+  divider: {
+    borderBottomWidth: 1,
+    marginVertical: 12,
+    marginHorizontal: 12,
+  },
+  newAreaCard: {
+    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    borderWidth: 1,
+    borderRadius: 8,
+    marginHorizontal: 4,
+  },
+  newAreaInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  newAreaInput: {
+    flex: 1,
+    fontSize: 16,
+    color: "#111827",
+    marginLeft: 12,
+  },
+  noAreas: {
+    fontSize: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  areaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 24,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderBottomWidth: 1,
+  },
+  areaItemContent: {
+    flex: 1,
+  },
+  areaItemText: {
+    fontWeight: "500",
+    marginLeft: 12,
+    marginTop: 8,
+    fontSize: 18,
+    lineHeight: 24,
+  },
+  settingsFloatingButton: {
+    position: "absolute",
+    bottom: 2,
+    left: 0,
+    right: 0,
+    backgroundColor: "transparent",
+    borderRadius: 10,
+    height: 60,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    alignSelf: "center",
+  },
+  settingsButtonText: {
+    fontSize: 16,
+    fontWeight: "500",
+    marginLeft: 8,
+    lineHeight: 18,
+    top: 4,
+  },
+  floatingButton: {
+    position: "absolute",
+    bottom: 24,
+    right: 24,
+    backgroundColor: "#3b82f6",
+    borderRadius: 26,
+    width: 52,
+    height: 52,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  addButtonContent: {
+    flexDirection: "column",
+    alignItems: "center",
+  },
+});

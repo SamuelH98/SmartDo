@@ -1,13 +1,20 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const AREAS_STORAGE_KEY = '@areas';
+const AREAS_STORAGE_KEY = "@areas";
 
 export interface AreaTask {
   id: string;
   title: string;
   completed: boolean;
   createdAt: number;
+  someday?: boolean;
 }
 
 export interface Area {
@@ -51,7 +58,7 @@ export function AreasProvider({ children }: { children: React.ReactNode }) {
         setAreas(loadedAreas);
       }
     } catch (error) {
-      console.error('Error loading areas:', error);
+      console.error("Error loading areas:", error);
     } finally {
       setLoading(false);
     }
@@ -62,11 +69,11 @@ export function AreasProvider({ children }: { children: React.ReactNode }) {
       const jsonValue = JSON.stringify(areas);
       await AsyncStorage.setItem(AREAS_STORAGE_KEY, jsonValue);
     } catch (error) {
-      console.error('Error saving areas:', error);
+      console.error("Error saving areas:", error);
     }
   };
 
-  const addArea = (name: string) => {
+  const addArea = useCallback((name: string) => {
     if (name.trim()) {
       const newArea: Area = {
         id: Date.now().toString(),
@@ -74,18 +81,18 @@ export function AreasProvider({ children }: { children: React.ReactNode }) {
         tasks: [],
         createdAt: Date.now(),
       };
-      setAreas([newArea, ...areas]);
+      setAreas((prev) => [newArea, ...prev]);
     }
-  };
+  }, []);
 
-  const deleteArea = (id: string) => {
-    setAreas(areas.filter(a => a.id !== id));
-  };
+  const deleteArea = useCallback((id: string) => {
+    setAreas((prev) => prev.filter((a) => a.id !== id));
+  }, []);
 
-  const addTaskToArea = (areaId: string, title: string) => {
+  const addTaskToArea = useCallback((areaId: string, title: string) => {
     if (title.trim()) {
-      setAreas(
-        areas.map(a =>
+      setAreas((prev) =>
+        prev.map((a) =>
           a.id === areaId
             ? {
                 ...a,
@@ -99,39 +106,39 @@ export function AreasProvider({ children }: { children: React.ReactNode }) {
                   },
                 ],
               }
-            : a
-        )
+            : a,
+        ),
       );
     }
-  };
+  }, []);
 
-  const deleteTaskFromArea = (areaId: string, taskId: string) => {
-    setAreas(
-      areas.map(a =>
+  const deleteTaskFromArea = useCallback((areaId: string, taskId: string) => {
+    setAreas((prev) =>
+      prev.map((a) =>
         a.id === areaId
           ? {
               ...a,
-              tasks: a.tasks.filter(t => t.id !== taskId),
+              tasks: a.tasks.filter((t) => t.id !== taskId),
             }
-          : a
-      )
+          : a,
+      ),
     );
-  };
+  }, []);
 
-  const toggleTaskCompletion = (areaId: string, taskId: string) => {
-    setAreas(
-      areas.map(a =>
+  const toggleTaskCompletion = useCallback((areaId: string, taskId: string) => {
+    setAreas((prev) =>
+      prev.map((a) =>
         a.id === areaId
           ? {
               ...a,
-              tasks: a.tasks.map(t =>
-                t.id === taskId ? { ...t, completed: !t.completed } : t
+              tasks: a.tasks.map((t) =>
+                t.id === taskId ? { ...t, completed: !t.completed } : t,
               ),
             }
-          : a
-      )
+          : a,
+      ),
     );
-  };
+  }, []);
 
   return (
     <AreasContext.Provider
@@ -153,7 +160,7 @@ export function AreasProvider({ children }: { children: React.ReactNode }) {
 export function useAreas() {
   const context = useContext(AreasContext);
   if (context === undefined) {
-    throw new Error('useAreas must be used within an AreasProvider');
+    throw new Error("useAreas must be used within an AreasProvider");
   }
   return context;
 }

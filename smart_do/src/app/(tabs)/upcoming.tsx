@@ -1,205 +1,388 @@
-import { View, SectionList, TouchableOpacity, Modal, ScrollView, TextInput } from "react-native";
+import { View, SectionList, TouchableOpacity, StyleSheet } from "react-native";
 import { AppText } from "@/components/AppText";
-import { Calendar, Plus, X, Check, ChevronRight } from "lucide-react-native";
-import { useState } from "react";
-import { useTasks } from "@/context/TasksContext";
+import { Calendar, Plus, Check, ChevronRight } from "lucide-react-native";
+import { useMemo, useState } from "react";
+import { useTasks, Task } from "@/context/TasksContext";
+import { useRouter } from "expo-router";
+import { useTheme } from "@/context/ThemeContext";
 
 export default function UpcomingScreen() {
-  const { tasks, addTask, toggleTaskCompletion } = useTasks();
-  const [showCalendarPrompt, setShowCalendarPrompt] = useState(true);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [taskTitle, setTaskTitle] = useState("");
-  const [taskNotes, setTaskNotes] = useState("");
-  const [selectedDate, setSelectedDate] = useState("tomorrow");
+  const { theme } = useTheme();
+  const router = useRouter();
+  const { tasks, toggleTaskCompletion } = useTasks();
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   const getDayLabel = (daysFromNow: number) => {
     const date = new Date();
     date.setDate(date.getDate() + daysFromNow);
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const days = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
     return days[date.getDay()];
   };
 
+  const getDateFromDaysFromNow = (daysFromNow: number) => {
+    const date = new Date();
+    date.setDate(date.getDate() + daysFromNow);
+    date.setHours(0, 0, 0, 0);
+    return date;
+  };
+
   const sections = [
-    { day: 6, label: getDayLabel(1), key: 'tomorrow' },
-    { day: 7, label: getDayLabel(2), key: 'day2' },
-    { day: 8, label: getDayLabel(3), key: 'day3' },
-    { day: 9, label: getDayLabel(4), key: 'day4' },
+    {
+      day: 6,
+      label: getDayLabel(1),
+      key: "tomorrow",
+      date: getDateFromDaysFromNow(1),
+    },
+    {
+      day: 7,
+      label: getDayLabel(2),
+      key: "day2",
+      date: getDateFromDaysFromNow(2),
+    },
+    {
+      day: 8,
+      label: getDayLabel(3),
+      key: "day3",
+      date: getDateFromDaysFromNow(3),
+    },
+    {
+      day: 9,
+      label: getDayLabel(4),
+      key: "day4",
+      date: getDateFromDaysFromNow(4),
+    },
   ];
 
-  const getSectionData = () => {
-    return sections.map(section => ({
-      ...section,
-      data: tasks.filter(task => !task.completed && task.dueDate === section.key),
-    }));
+  const isSameDay = (date1: Date, date2: Date | string) => {
+    const d1 = new Date(date1);
+    const d2 = typeof date2 === "string" ? new Date(date2) : date2;
+
+    d1.setHours(0, 0, 0, 0);
+    d2.setHours(0, 0, 0, 0);
+
+    return d1.getTime() === d2.getTime();
   };
 
-  const handleAddTask = () => {
-    if (taskTitle.trim()) {
-      addTask(taskTitle, taskNotes, selectedDate);
-      setTaskTitle("");
-      setTaskNotes("");
-      setModalVisible(false);
+  const getSectionData = useMemo(() => {
+    // First 4 days
+    const firstFourDays = sections.map((section) => ({
+      ...section,
+      data: tasks.filter(
+        (task) =>
+          !task.completed &&
+          task.dueDate &&
+          isSameDay(section.date, task.dueDate),
+      ),
+    }));
+
+    // Get all tasks with dates beyond the first 4 days
+    const fourDaysOut = getDateFromDaysFromNow(4);
+    const futureTasks = tasks.filter((task) => {
+      if (!task.dueDate || task.completed) return false;
+      const taskDate = new Date(task.dueDate);
+      taskDate.setHours(0, 0, 0, 0);
+      return taskDate > fourDaysOut;
+    });
+
+    if (futureTasks.length === 0) {
+      return firstFourDays;
     }
-  };
+
+    // Group future tasks by date
+    const futureTasksByDate = new Map<string, any[]>();
+
+    futureTasks.forEach((task) => {
+      const taskDate = new Date(task.dueDate!);
+      taskDate.setHours(0, 0, 0, 0);
+      const dateKey = taskDate.toISOString();
+
+      if (!futureTasksByDate.has(dateKey)) {
+        futureTasksByDate.set(dateKey, []);
+      }
+      futureTasksByDate.get(dateKey)!.push(task);
+    });
+
+    // Create sections for future tasks
+    const futureSections = Array.from(futureTasksByDate.entries())
+      .map(([dateKey, tasks]) => {
+        const date = new Date(dateKey);
+        const days = [
+          "Sunday",
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+        ];
+        const months = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
+
+        return {
+          day: date.getDate(),
+          label: `${days[date.getDay()]}, ${months[date.getMonth()]} ${date.getDate()}`,
+          key: dateKey,
+          date,
+          isFuture: true,
+          data: tasks.sort((a, b) => a.timestamp - b.timestamp),
+        };
+      })
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    return [...firstFourDays, ...futureSections];
+  }, [tasks]);
 
   const handleToggleComplete = (taskId: string, event: any) => {
     event.stopPropagation();
     toggleTaskCompletion(taskId);
   };
 
-  const renderSectionHeader = ({ section }) => (
-    <View className="bg-white px-4 py-4 flex-row items-center justify-between border-b border-gray-100">
-      <View className="flex-row items-center">
-        <AppText className="text-3xl font-light text-gray-400 mr-3">{section.day}</AppText>
-        <AppText className="text-base font-medium text-gray-600">{section.label}</AppText>
+  const handleQuickDateSelect = (date: Date) => {
+    setSelectedDate(date);
+  };
+
+  const formatSelectedDate = (date: Date | null) => {
+    if (!date) return "Select date";
+
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    today.setHours(0, 0, 0, 0);
+    tomorrow.setHours(0, 0, 0, 0);
+    const dateToCheck = new Date(date);
+    dateToCheck.setHours(0, 0, 0, 0);
+
+    if (dateToCheck.getTime() === today.getTime()) {
+      return "Today";
+    } else if (dateToCheck.getTime() === tomorrow.getTime()) {
+      return "Tomorrow";
+    } else {
+      const days = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+      ];
+      const months = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+      return `${days[date.getDay()]}, ${months[date.getMonth()]} ${date.getDate()}`;
+    }
+  };
+
+  const renderSectionHeader = ({ section }: { section: any }) => (
+    <View
+      style={[
+        styles.sectionHeader,
+        { backgroundColor: theme.card, borderBottomColor: theme.borderLight },
+      ]}
+    >
+      <View style={styles.sectionHeaderLeft}>
+        <AppText
+          style={[
+            styles.sectionDay,
+            { color: theme.textTertiary, marginRight: 12 },
+          ]}
+        >
+          {section.day}
+        </AppText>
+        <AppText style={[styles.sectionLabel, { color: theme.textSecondary }]}>
+          {section.label}
+        </AppText>
       </View>
       <ChevronRight size={18} color="#D1D5DB" />
     </View>
   );
 
-  const renderTaskItem = ({ item, section }) => (
-    <TouchableOpacity 
-      className="flex-row items-center px-4 py-3 bg-white border-b border-gray-50 active:bg-gray-50"
+  const renderTaskItem = ({ item }: { item: Task }) => (
+    <TouchableOpacity
+      style={[
+        styles.taskItem,
+        { backgroundColor: theme.card, borderBottomColor: theme.borderLight },
+      ]}
     >
-      <TouchableOpacity 
-        className="w-5 h-5 rounded border-2 border-gray-300 justify-center items-center mr-3"
+      <TouchableOpacity
+        style={[
+          styles.checkbox,
+          { borderColor: theme.checkboxBorder, marginRight: 12 },
+        ]}
         onPress={(e) => handleToggleComplete(item.id, e)}
       >
-        {item.completed && (
-          <Check size={14} color="#3B82F6" strokeWidth={3} />
-        )}
+        {item.completed && <Check size={14} color="#3B82F6" strokeWidth={3} />}
       </TouchableOpacity>
-      <AppText className={`flex-1 text-gray-900 ${item.completed ? 'line-through text-gray-400' : ''}`}>
+      <AppText
+        style={[
+          styles.taskText,
+          {
+            color: item.completed ? theme.textTertiary : theme.text,
+            textDecorationLine: item.completed ? "line-through" : "none",
+          },
+        ]}
+      >
         {item.sender}
       </AppText>
     </TouchableOpacity>
   );
 
   return (
-    <View className="flex-1 bg-white">
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Header */}
-      <View className="px-4 py-6 flex-row items-center bg-white border-b border-gray-100">
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: theme.card, borderBottomColor: theme.borderLight },
+        ]}
+      >
         <Calendar size={32} color="#ec4899" />
-        <AppText className="text-3xl font-semibold text-gray-900 ml-3 mt-2">Upcoming</AppText>
+        <AppText
+          style={[styles.headerTitle, { color: theme.text, marginLeft: 12 }]}
+        >
+          Upcoming
+        </AppText>
       </View>
 
-      {/* Calendar Events Prompt */}
-      {showCalendarPrompt && (
-        <View className="mx-4 mt-4 bg-gray-800 rounded-xl p-6">
-          <AppText className="text-white text-lg font-semibold mb-3 text-center">
-            Calendar Events
-          </AppText>
-          <AppText className="text-gray-300 text-sm mb-4 text-center leading-relaxed">
-            This list is your schedule for the coming days. Would you like to display events from your calendar as well?
-          </AppText>
-          <View className="flex-row gap-3 justify-center">
-            <TouchableOpacity 
-              className="px-5 py-2.5 bg-gray-700 rounded-lg"
-              onPress={() => setShowCalendarPrompt(false)}
-            >
-              <AppText className="text-white font-medium">No Thanks</AppText>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              className="px-5 py-2.5 bg-blue-500 rounded-lg"
-              onPress={() => setShowCalendarPrompt(false)}
-            >
-              <AppText className="text-white font-medium">Show Events</AppText>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-
       <SectionList
-        sections={getSectionData()}
+        sections={getSectionData}
         renderItem={renderTaskItem}
         renderSectionHeader={renderSectionHeader}
         keyExtractor={(item) => item.id}
         stickySectionHeadersEnabled={false}
         ListEmptyComponent={
-          <View className="flex-1 justify-center items-center p-8 mt-20">
+          <View style={[styles.emptyState, { marginTop: -80 }]}>
             <Calendar size={64} color="#9CA3AF" />
-            <AppText className="text-gray-400 mt-4">No upcoming tasks</AppText>
           </View>
         }
-        contentContainerStyle={getSectionData().length === 0 ? { flex: 1 } : { paddingBottom: 100 }}
+        contentContainerStyle={
+          getSectionData.every((s) => s.data.length === 0)
+            ? { flex: 1 }
+            : { paddingBottom: 100 }
+        }
       />
 
       {/* Floating Action Button */}
-      <TouchableOpacity 
-        className="absolute bottom-6 right-6 bg-blue-500 rounded-full w-14 h-14 items-center justify-center shadow-lg"
-        onPress={() => setModalVisible(true)}
+      <TouchableOpacity
+        style={styles.floatingButton}
+        onPress={() => router.push("/(tabs)/inbox?add=true")}
       >
         <Plus size={28} color="white" strokeWidth={2.5} />
       </TouchableOpacity>
-
-      {/* Add Task Modal */}
-      <Modal
-        visible={modalVisible}
-        animationType="fade"
-        transparent
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View className="flex-1 items-center justify-center bg-black/50">
-          <View className="bg-white rounded-2xl mx-6 w-[85%] p-6">
-            <View className="flex-row justify-between items-center mb-4">
-              <AppText className="text-xl font-semibold text-gray-900">New Task</AppText>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <X size={24} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-
-            <TextInput
-              className="border-b border-gray-300 py-3 text-base text-gray-900 mb-4"
-              placeholder="Task title"
-              placeholderTextColor="#9CA3AF"
-              value={taskTitle}
-              onChangeText={setTaskTitle}
-              autoFocus
-            />
-
-            <TextInput
-              className="border-b border-gray-300 py-3 text-base text-gray-900 mb-4"
-              placeholder="Notes"
-              placeholderTextColor="#9CA3AF"
-              value={taskNotes}
-              onChangeText={setTaskNotes}
-              multiline
-            />
-
-            <View className="border-b border-gray-300 mb-6">
-              <AppText className="text-xs text-gray-500 mb-1">Schedule for</AppText>
-              <View className="flex-row flex-wrap gap-2 pb-3">
-                {sections.map((section) => (
-                  <TouchableOpacity
-                    key={section.key}
-                    className={`px-4 py-2 rounded-lg ${selectedDate === section.key ? 'bg-blue-500' : 'bg-gray-100'}`}
-                    onPress={() => setSelectedDate(section.key)}
-                  >
-                    <AppText className={`font-medium ${selectedDate === section.key ? 'text-white' : 'text-gray-700'}`}>
-                      {section.label}
-                    </AppText>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            <View className="flex-row gap-3">
-              <TouchableOpacity 
-                className="flex-1 bg-gray-100 py-3 rounded-lg"
-                onPress={() => setModalVisible(false)}
-              >
-                <AppText className="text-center text-gray-700 font-medium">Cancel</AppText>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                className="flex-1 bg-blue-500 py-3 rounded-lg"
-                onPress={handleAddTask}
-              >
-                <AppText className="text-center text-white font-medium">Add</AppText>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    paddingHorizontal: 16,
+    paddingVertical: 24,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 30,
+    fontWeight: "600",
+    lineHeight: 36,
+  },
+  sectionHeader: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderBottomWidth: 1,
+  },
+  sectionHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  sectionDay: {
+    fontSize: 48,
+    fontWeight: "200",
+    lineHeight: 56,
+    minWidth: 60,
+  },
+  sectionLabel: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  taskItem: {
+    flexDirection: "row",
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  taskText: {
+    flex: 1,
+    fontSize: 16,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+  },
+  emptyText: {
+    marginTop: 16,
+  },
+  floatingButton: {
+    position: "absolute",
+    bottom: 24,
+    right: 24,
+    backgroundColor: "#3b82f6",
+    borderRadius: 28,
+    width: 56,
+    height: 56,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+});

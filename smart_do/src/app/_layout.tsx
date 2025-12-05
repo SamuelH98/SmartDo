@@ -2,7 +2,9 @@ import { Stack } from "expo-router";
 import "../../global.css";
 import React from "react";
 import { TasksProvider } from "@/context/TasksContext";
-import { AreasProvider } from '@/context/AreasContext';
+import { AreasProvider } from "@/context/AreasContext";
+import { ThemeProvider } from "@/context/ThemeContext";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 export const unstable_settings = {
   initialRouteName: "(tabs)",
@@ -10,17 +12,21 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   return (
-    <TasksProvider>
-      <AreasProvider>
-        <Stack>
-          <Stack.Screen
-            name="(tabs)"
-            options={{
-              headerShown: false,
-            }}
-          />
-        </Stack>
-      </AreasProvider>
-    </TasksProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <TasksProvider>
+          <AreasProvider>
+            <Stack>
+              <Stack.Screen
+                name="(tabs)"
+                options={{
+                  headerShown: false,
+                }}
+              />
+            </Stack>
+          </AreasProvider>
+        </TasksProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }

@@ -1,27 +1,50 @@
-import { View, SectionList, TouchableOpacity, Modal, ScrollView, TextInput } from "react-native";
+import {
+  View,
+  SectionList,
+  TouchableOpacity,
+  Modal,
+  ScrollView,
+  StyleSheet,
+} from "react-native";
 import { AppText } from "@/components/AppText";
-import { Check, X, Trash2, Star, Plus, ChevronRight } from "lucide-react-native";
+import { Check, X, Star, Plus, ChevronRight } from "lucide-react-native";
 import { useState } from "react";
-import { useTasks } from "@/context/TasksContext";
-import { useAreas } from "@/context/AreasContext";
+import { useTasks, Task } from "@/context/TasksContext";
+import { useAreas, AreaTask, Area } from "@/context/AreasContext";
+import { useRouter } from "expo-router";
+import { useTheme } from "@/context/ThemeContext";
+
+interface UnifiedTask {
+  id: string;
+  title?: string;
+  sender?: string;
+  preview?: string;
+  completed: boolean;
+  isArea: boolean;
+  areaId?: string;
+  dueDate?: string;
+  time?: string;
+  timestamp?: number;
+  subject?: string;
+}
 
 export default function TodayScreen() {
-  const { tasks, removeTask, toggleTaskCompletion, addTask } = useTasks();
+  const { theme } = useTheme();
+  const router = useRouter();
+  const { tasks, toggleTaskCompletion } = useTasks();
   const { areas, toggleTaskCompletion: toggleAreaTask } = useAreas();
   const [previewModal, setPreviewModal] = useState(false);
-  const [selectedTask, setSelectedTask] = useState(null);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [taskTitle, setTaskTitle] = useState("");
-  const [taskNotes, setTaskNotes] = useState("");
+  const [selectedTask, setSelectedTask] = useState<UnifiedTask | null>(null);
 
   // Filter to only show incomplete tasks in Inbox
-  const incompleteTasks = tasks.filter(task => !task.completed);
+  const incompleteTasks = tasks.filter((task) => !task.completed);
 
   // Calculate total incomplete tasks across all areas
   const getTotalIncompleteTasks = () => {
     const inboxCount = incompleteTasks.length;
-    const areasCount = areas.reduce((sum, a) => 
-      sum + a.tasks.filter(t => !t.completed).length, 0
+    const areasCount = areas.reduce(
+      (sum, a) => sum + a.tasks.filter((t) => !t.completed).length,
+      0,
     );
     return inboxCount + areasCount;
   };
@@ -34,16 +57,20 @@ export default function TodayScreen() {
     if (incompleteTasks.length > 0) {
       sections.push({
         title: "Inbox",
-        data: incompleteTasks,
+        data: incompleteTasks.map((task) => ({ ...task, isArea: false })),
         isArea: false,
       });
     }
 
     // Add each area as a section with ALL its tasks (completed and incomplete)
-    areas.forEach(area => {
+    areas.forEach((area) => {
       sections.push({
         title: area.name,
-        data: area.tasks,
+        data: area.tasks.map((task) => ({
+          ...task,
+          isArea: true,
+          areaId: area.id,
+        })),
         isArea: true,
         areaId: area.id,
       });
@@ -54,7 +81,12 @@ export default function TodayScreen() {
 
   const sections = getSectionData();
 
-  const handleToggleComplete = (taskId: string, isArea: boolean, areaId?: string, event?: any) => {
+  const handleToggleComplete = (
+    taskId: string,
+    isArea: boolean,
+    areaId?: string,
+    event?: any,
+  ) => {
     if (event) {
       event.stopPropagation();
     }
@@ -72,49 +104,77 @@ export default function TodayScreen() {
     setPreviewModal(true);
   };
 
-  const handleAddTask = () => {
-    if (taskTitle.trim()) {
-      addTask(taskTitle, taskNotes);
-      setTaskTitle("");
-      setTaskNotes("");
-      setModalVisible(false);
-    }
-  };
-
-  const renderSectionHeader = ({ section: { title } }) => (
-    <View className="bg-white px-4 py-3 flex-row items-center justify-between border-b border-gray-100">
-      <View className="flex-row items-center">
-        <View className="w-2 h-2 rounded-full bg-yellow-400 mr-2" />
-        <AppText className="text-sm font-semibold text-gray-700">{title}</AppText>
+  const renderSectionHeader = ({
+    section: { title },
+  }: {
+    section: { title: string };
+  }) => (
+    <View
+      style={[
+        styles.sectionHeader,
+        { backgroundColor: theme.card, borderBottomColor: theme.borderLight },
+      ]}
+    >
+      <View style={styles.sectionHeaderLeft}>
+        <View style={[styles.sectionDot, { backgroundColor: "#facc15" }]} />
+        <AppText style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+          {title}
+        </AppText>
       </View>
       <ChevronRight size={16} color="#D1D5DB" />
     </View>
   );
 
-  const renderTaskItem = ({ item, section }) => (
-    <TouchableOpacity 
-      className="flex-row px-4 py-3.5 bg-white border-b border-gray-50 active:bg-gray-50"
-      onPress={() => handlePreview(item, section.isArea, section.areaId)}
+  const renderTaskItem = ({
+    item,
+    section,
+  }: {
+    item: UnifiedTask;
+    section: any;
+  }) => (
+    <TouchableOpacity
+      style={[
+        styles.taskItem,
+        { backgroundColor: theme.card, borderBottomColor: theme.borderLight },
+      ]}
+      onPress={() => handlePreview(item, item.isArea, item.areaId)}
     >
-      <TouchableOpacity 
-        className="w-5 h-5 rounded border-2 border-gray-300 justify-center items-center mr-3 mt-0.5"
-        onPress={(e) => handleToggleComplete(item.id, section.isArea, section.areaId, e)}
+      <TouchableOpacity
+        style={[
+          styles.checkbox,
+          { borderColor: theme.checkboxBorder, marginTop: 2 },
+        ]}
+        onPress={(e) =>
+          handleToggleComplete(item.id, item.isArea, item.areaId, e)
+        }
       >
-        {item.completed && (
-          <Check size={14} color="#3B82F6" strokeWidth={3} />
-        )}
+        {item.completed && <Check size={14} color="#3B82F6" strokeWidth={3} />}
       </TouchableOpacity>
 
-      <View className="flex-1">
-        <View className="flex-row items-center">
-          <View className="w-1.5 h-1.5 rounded-full bg-yellow-400 mr-2" />
-          <AppText className={`${item.completed ? 'text-gray-400 line-through' : 'text-gray-900'} text-[15px] flex-1`}>
-            {section.isArea ? item.title : item.sender}
+      <View style={styles.taskContent}>
+        <View style={styles.taskRow}>
+          <View style={[styles.taskDot, { backgroundColor: "#facc15" }]} />
+          <AppText
+            style={[
+              styles.taskText,
+              {
+                color: item.completed ? theme.textTertiary : theme.text,
+                textDecorationLine: item.completed ? "line-through" : "none",
+              },
+            ]}
+          >
+            {item.isArea ? item.title : item.sender}
           </AppText>
         </View>
-        
-        {!section.isArea && item.preview ? (
-          <AppText className="text-gray-400 text-[13px] mt-1 ml-3.5" numberOfLines={1}>
+
+        {!item.isArea && item.preview ? (
+          <AppText
+            style={[
+              styles.taskPreview,
+              { color: theme.textTertiary, marginTop: 4, marginLeft: 14 },
+            ]}
+            numberOfLines={1}
+          >
             {item.preview}
           </AppText>
         ) : null}
@@ -123,24 +183,16 @@ export default function TodayScreen() {
   );
 
   return (
-    <View className="flex-1 bg-white">
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Header */}
-      <View className="px-4 py-6 flex-row items-center bg-white">
+      <View style={[styles.header, { backgroundColor: theme.card }]}>
         <Star size={32} color="#facc15" />
-        <AppText className="text-3xl font-semibold text-gray-900 ml-3 mt-2">Today</AppText>
+        <AppText
+          style={[styles.headerTitle, { color: theme.text, marginLeft: 12 }]}
+        >
+          Today
+        </AppText>
       </View>
-
-      {/* Task Count Banner */}
-      {getTotalIncompleteTasks() > 0 && (
-        <View className="bg-yellow-50 mx-4 mb-4 p-3.5 rounded-lg flex-row justify-between items-center border border-yellow-200">
-          <AppText className="text-gray-800 text-[15px]">
-            You have {getTotalIncompleteTasks()} new to-dos
-          </AppText>
-          <View className="bg-yellow-400 px-4 py-1.5 rounded">
-            <AppText className="text-gray-900 font-bold text-xs">OK</AppText>
-          </View>
-        </View>
-      )}
 
       <SectionList
         sections={sections}
@@ -149,14 +201,15 @@ export default function TodayScreen() {
         keyExtractor={(item, index) => item.id + index}
         stickySectionHeadersEnabled={false}
         ListEmptyComponent={
-          <View className="flex-1 justify-center items-center p-8 mt-[-80px]">
+          <View style={[styles.emptyState, { marginTop: -80 }]}>
             <Star size={64} color="#9CA3AF" />
-            <AppText className="text-gray-400 mt-4">No tasks for today</AppText>
           </View>
         }
-        contentContainerStyle={sections.length === 0 ? { flex: 1 } : { paddingBottom: 100 }}
+        contentContainerStyle={
+          sections.length === 0 ? { flex: 1 } : { paddingBottom: 100 }
+        }
       />
-      
+
       {/* Preview Modal */}
       <Modal
         visible={previewModal}
@@ -164,42 +217,54 @@ export default function TodayScreen() {
         transparent
         onRequestClose={() => setPreviewModal(false)}
       >
-        <View className="flex-1 items-center justify-end bg-black/50">
-          <View className="bg-white rounded-t-3xl w-full max-h-[80%] pb-8">
-            <View className="flex-row justify-between items-center p-6 border-b border-gray-200">
-              <AppText className="text-2xl font-semibold text-gray-900">
-                {selectedTask?.isArea ? selectedTask?.title : selectedTask?.sender}
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
+            <View
+              style={[styles.modalHeader, { borderBottomColor: theme.border }]}
+            >
+              <AppText style={[styles.modalTitle, { color: theme.text }]}>
+                {selectedTask?.isArea
+                  ? selectedTask?.title
+                  : selectedTask?.sender}
               </AppText>
               <TouchableOpacity onPress={() => setPreviewModal(false)}>
                 <X size={24} color="#6B7280" />
               </TouchableOpacity>
             </View>
 
-            <ScrollView className="px-6 py-4">
+            <ScrollView style={styles.modalScrollView}>
               {!selectedTask?.isArea && selectedTask?.preview ? (
-                <View className="mb-4">
-                  <AppText className="text-gray-500 text-xs mb-1">Notes</AppText>
-                  <AppText className="text-gray-900 text-base leading-6">
+                <View style={styles.notesSection}>
+                  <AppText
+                    style={[styles.notesLabel, { color: theme.textSecondary }]}
+                  >
+                    Notes
+                  </AppText>
+                  <AppText style={[styles.notesText, { color: theme.text }]}>
                     {selectedTask.preview}
                   </AppText>
                 </View>
               ) : null}
             </ScrollView>
 
-            <View className="px-6 pt-4 border-t border-gray-200 gap-3">
-              <TouchableOpacity 
-                className="py-3 rounded-lg"
+            <View
+              style={[styles.modalActions, { borderTopColor: theme.border }]}
+            >
+              <TouchableOpacity
+                style={styles.actionButton}
                 onPress={() => {
                   if (selectedTask?.isArea && selectedTask?.areaId) {
                     toggleAreaTask(selectedTask.areaId, selectedTask.id);
-                  } else {
-                    toggleTaskCompletion(selectedTask?.id);
+                  } else if (selectedTask?.id) {
+                    toggleTaskCompletion(selectedTask.id);
                   }
                   setPreviewModal(false);
                 }}
               >
-                <AppText className="text-center text-blue-500 font-medium">
-                  {selectedTask?.completed ? "Mark as Not Done" : "Mark as Done"}
+                <AppText style={styles.actionButtonText}>
+                  {selectedTask?.completed
+                    ? "Mark as Not Done"
+                    : "Mark as Done"}
                 </AppText>
               </TouchableOpacity>
             </View>
@@ -208,64 +273,167 @@ export default function TodayScreen() {
       </Modal>
 
       {/* Floating Action Button */}
-      <TouchableOpacity 
-        className="absolute bottom-6 right-6 bg-blue-500 rounded-full w-14 h-14 items-center justify-center shadow-lg"
-        onPress={() => setModalVisible(true)}
+      <TouchableOpacity
+        style={styles.floatingButton}
+        onPress={() => router.push("/(tabs)/inbox?add=true")}
       >
         <Plus size={28} color="white" strokeWidth={2.5} />
       </TouchableOpacity>
-      
-      {/* Add Task Modal */}
-      <Modal
-        visible={modalVisible}
-        animationType="fade"
-        transparent
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View className="flex-1 items-center justify-center bg-black/50">
-          <View className="bg-white rounded-2xl mx-6 w-[85%] p-6">
-            <View className="flex-row justify-between items-center mb-4">
-              <AppText className="text-xl font-semibold text-gray-900">New Task</AppText>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <X size={24} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-      
-            <TextInput
-              className="border-b border-gray-300 py-3 text-base text-gray-900 mb-4"
-              placeholder="Task title"
-              placeholderTextColor="#9CA3AF"
-              value={taskTitle}
-              onChangeText={setTaskTitle}
-              autoFocus
-            />
-      
-            <TextInput
-              className="border-b border-gray-300 py-3 text-base text-gray-900 mb-6"
-              placeholder="Notes"
-              placeholderTextColor="#9CA3AF"
-              value={taskNotes}
-              onChangeText={setTaskNotes}
-              multiline
-            />
-      
-            <View className="flex-row gap-3">
-              <TouchableOpacity 
-                className="flex-1 bg-gray-100 py-3 rounded-lg"
-                onPress={() => setModalVisible(false)}
-              >
-                <AppText className="text-center text-gray-700 font-medium">Cancel</AppText>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                className="flex-1 bg-blue-500 py-3 rounded-lg"
-                onPress={handleAddTask}
-              >
-                <AppText className="text-center text-white font-medium">Add</AppText>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    paddingHorizontal: 16,
+    paddingVertical: 24,
+    paddingBottom: 28,
+    paddingTop: 28,
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  headerTitle: {
+    fontSize: 30,
+    fontWeight: "600",
+    lineHeight: 36,
+  },
+  sectionHeader: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderBottomWidth: 1,
+  },
+  sectionHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  sectionDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  taskItem: {
+    flexDirection: "row",
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  taskContent: {
+    flex: 1,
+  },
+  taskRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  taskDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 8,
+  },
+  taskText: {
+    fontSize: 15,
+    flex: 1,
+  },
+  taskPreview: {
+    fontSize: 13,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+  },
+  emptyText: {
+    marginTop: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  modalContent: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    width: "100%",
+    maxHeight: "80%",
+    paddingBottom: 32,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 24,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: "600",
+  },
+  modalScrollView: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+  },
+  notesSection: {
+    marginBottom: 16,
+  },
+  notesLabel: {
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  notesText: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  modalActions: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    gap: 12,
+  },
+  actionButton: {
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  actionButtonText: {
+    textAlign: "center",
+    color: "#3b82f6",
+    fontWeight: "500",
+  },
+  floatingButton: {
+    position: "absolute",
+    bottom: 24,
+    right: 24,
+    backgroundColor: "#3b82f6",
+    borderRadius: 28,
+    width: 56,
+    height: 56,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+});
