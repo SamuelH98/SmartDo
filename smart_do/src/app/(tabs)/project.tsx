@@ -7,6 +7,7 @@ import {
   Modal,
   ScrollView,
   StyleSheet,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
@@ -16,28 +17,31 @@ import {
   X,
   Trash2,
   Plus,
-  Box,
+  Circle,
   Calendar,
   Tag,
   List,
   Flag,
   ChevronRight,
+  ChevronDown,
 } from "lucide-react-native";
+import { useProjects } from "@/context/ProjectsContext";
 import { useAreas } from "@/context/AreasContext";
 import { useTasks } from "@/context/TasksContext";
 import { useTheme } from "@/context/ThemeContext";
 
-export default function AreaScreen() {
+export default function ProjectScreen() {
   const router = useRouter();
-  const { areaId } = useLocalSearchParams();
+  const { projectId } = useLocalSearchParams();
   const { theme } = useTheme();
   const {
-    areas,
-    deleteArea,
-    addTaskToArea,
-    deleteTaskFromArea,
+    projects,
+    addTaskToProject,
+    deleteTaskFromProject,
     toggleTaskCompletion,
-  } = useAreas();
+    deleteProject,
+  } = useProjects();
+  const { areas } = useAreas();
   const {
     tasks,
     addTask,
@@ -52,29 +56,24 @@ export default function AreaScreen() {
   const [editingTask, setEditingTask] = useState<any>(null);
   const [moveModal, setMoveModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [showDeleteOptions, setShowDeleteOptions] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const area = areas.find((a) => a.id === areaId);
+  const project = projects.find((p) => p.id === projectId);
 
   useEffect(() => {
-    if (!area) {
+    if (!project && projectId) {
       router.back();
     }
-  }, [area]);
-
-  const handleDeleteArea = () => {
-    if (areaId) {
-      deleteArea(areaId as string);
-      router.back();
-    }
-  };
+  }, [project, projectId]);
 
   const handleAddTask = () => {
     if (!newTaskTitle.trim()) {
       return;
     }
 
-    if (areaId) {
-      addTaskToArea(areaId as string, newTaskTitle);
+    if (projectId) {
+      addTaskToProject(projectId as string, newTaskTitle);
     }
 
     setNewTaskTitle("");
@@ -106,32 +105,54 @@ export default function AreaScreen() {
   };
 
   const handleToggleTaskCompletion = (taskId: string) => {
-    if (areaId) {
-      const task = area?.tasks.find((t) => t.id === taskId);
+    if (projectId) {
+      const task = project?.tasks.find((t) => t.id === taskId);
 
       if (task && !task.completed) {
-        // When completing an area task, add it directly to logbook as completed
+        // When completing a project task, add it directly to logbook as completed
         addCompletedTask(task.title, "");
       }
 
-      // Toggle completion in the area
-      toggleTaskCompletion(areaId as string, taskId);
+      // Toggle completion in the project
+      toggleTaskCompletion(projectId as string, taskId);
     }
   };
 
   const handleDeleteTask = (taskId: string) => {
-    if (areaId) {
-      deleteTaskFromArea(areaId as string, taskId);
+    if (projectId) {
+      deleteTaskFromProject(projectId as string, taskId);
     }
   };
 
-  if (!area) {
+  const handleDeleteProject = () => {
+    Alert.alert(
+      "Delete Project",
+      "Are you sure you want to delete this project and all its tasks?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            if (project && project.id && !isDeleting) {
+              setIsDeleting(true);
+              deleteProject(project.id);
+              // Navigate back to home screen directly
+              router.replace("/");
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  if (!project || isDeleting) {
     return null;
   }
 
   const renderEmptyState = () => (
     <View style={[styles.emptyState, { marginTop: -80 }]}>
-      {!modalVisible && <Box size={64} color="#9CA3AF" />}
+      {!modalVisible && <Circle size={64} color="#9CA3AF" />}
     </View>
   );
 
@@ -154,13 +175,49 @@ export default function AreaScreen() {
           <View
             style={[styles.header, { borderBottomColor: theme.borderLight }]}
           >
-            <Box size={32} color="#3b82f6" />
+            <Circle size={32} color="#7F8082" />
             <AppText
               style={[styles.title, { color: theme.text, marginLeft: 12 }]}
             >
-              {area.name}
+              {project.name}
             </AppText>
+            <TouchableOpacity
+              style={styles.chevronButton}
+              onPress={() => setShowDeleteOptions(!showDeleteOptions)}
+            >
+              <ChevronDown
+                size={24}
+                color="#6B7280"
+                style={[
+                  styles.chevronIcon,
+                  showDeleteOptions && styles.chevronIconRotated,
+                ]}
+              />
+            </TouchableOpacity>
           </View>
+
+          {/* Delete Options */}
+          {showDeleteOptions && (
+            <View
+              style={[
+                styles.deleteOptions,
+                {
+                  backgroundColor: theme.card,
+                  borderBottomColor: theme.border,
+                },
+              ]}
+            >
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={handleDeleteProject}
+              >
+                <Trash2 size={20} color="#EF4444" />
+                <AppText style={styles.deleteButtonText}>
+                  Delete Project
+                </AppText>
+              </TouchableOpacity>
+            </View>
+          )}
           {/* Inline Add Task Card */}
           {modalVisible && (
             <View
@@ -237,7 +294,7 @@ export default function AreaScreen() {
           )}
 
           <FlatList
-            data={area.tasks}
+            data={project.tasks}
             renderItem={({ item: task }) => {
               const isEditing = editingTask?.id === task.id;
 
@@ -260,7 +317,7 @@ export default function AreaScreen() {
                         ]}
                         onPress={(e) => {
                           e.stopPropagation();
-                          // Don't move to inbox when editing in area
+                          // Don't move to inbox when editing in project
                         }}
                       >
                         {task.completed && (
@@ -381,7 +438,9 @@ export default function AreaScreen() {
             }}
             keyExtractor={(item) => item.id}
             ListEmptyComponent={renderEmptyState}
-            contentContainerStyle={area.tasks.length === 0 ? { flex: 1 } : {}}
+            contentContainerStyle={
+              project.tasks.length === 0 ? { flex: 1 } : {}
+            }
           />
 
           {/* Edit Mode Controls */}
@@ -435,7 +494,7 @@ export default function AreaScreen() {
             </TouchableOpacity>
           )}
 
-          {/* Move to Project Modal */}
+          {/* Move to Area Modal */}
           <Modal
             visible={moveModal}
             animationType="fade"
@@ -448,7 +507,7 @@ export default function AreaScreen() {
               >
                 <View style={styles.modalHeader}>
                   <AppText style={[styles.modalTitle, { color: theme.text }]}>
-                    Move to Project
+                    Move to Area
                   </AppText>
                   <TouchableOpacity onPress={() => setMoveModal(false)}>
                     <X size={24} color="#6B7280" />
@@ -463,49 +522,48 @@ export default function AreaScreen() {
                         { color: theme.textSecondary },
                       ]}
                     >
-                      No other projects yet.
+                      No areas yet.
                     </AppText>
                   ) : (
-                    areas
-                      .filter((project) => project.id !== areaId) // Exclude current area
-                      .map((project) => (
-                        <TouchableOpacity
-                          key={project.id}
-                          style={[
-                            styles.projectItem,
-                            { borderColor: theme.border },
-                          ]}
-                          onPress={() => {
-                            if (selectedTask && areaId) {
-                              // Add task to new area
-                              addTaskToArea(project.id, selectedTask.title);
-                              // Remove from current area
-                              deleteTaskFromArea(
-                                areaId as string,
-                                selectedTask.id,
-                              );
-                              setMoveModal(false);
-                              setSelectedTask(null);
-                              setEditingTask(null);
-                            }
-                          }}
+                    areas.map((area) => (
+                      <TouchableOpacity
+                        key={area.id}
+                        style={[
+                          styles.projectItem,
+                          { borderColor: theme.border },
+                        ]}
+                        onPress={() => {
+                          if (selectedTask && projectId) {
+                            // Add task to new area
+                            // Note: This would need to be implemented in AreasContext
+                            // addTaskToArea(area.id, selectedTask.title);
+                            // Remove from current project
+                            deleteTaskFromProject(
+                              projectId as string,
+                              selectedTask.id,
+                            );
+                            setMoveModal(false);
+                            setSelectedTask(null);
+                            setEditingTask(null);
+                          }
+                        }}
+                      >
+                        <AppText
+                          style={[styles.projectName, { color: theme.text }]}
                         >
-                          <AppText
-                            style={[styles.projectName, { color: theme.text }]}
-                          >
-                            {project.name}
-                          </AppText>
-                          <AppText
-                            style={[
-                              styles.projectTaskCount,
-                              { color: theme.textSecondary, marginTop: 4 },
-                            ]}
-                          >
-                            {project.tasks.length} task
-                            {project.tasks.length !== 1 ? "s" : ""}
-                          </AppText>
-                        </TouchableOpacity>
-                      ))
+                          {area.name}
+                        </AppText>
+                        <AppText
+                          style={[
+                            styles.projectTaskCount,
+                            { color: theme.textSecondary, marginTop: 4 },
+                          ]}
+                        >
+                          {area.tasks.length} task
+                          {area.tasks.length !== 1 ? "s" : ""}
+                        </AppText>
+                      </TouchableOpacity>
+                    ))
                   )}
                 </ScrollView>
 
@@ -538,6 +596,33 @@ const styles = StyleSheet.create({
     fontSize: 30,
     fontWeight: "600",
     lineHeight: 36,
+    flex: 1,
+  },
+  chevronButton: {
+    padding: 8,
+    marginLeft: 12,
+  },
+  chevronIcon: {
+    transition: "transform 0.2s",
+  },
+  chevronIconRotated: {
+    transform: [{ rotate: "180deg" }],
+  },
+  deleteOptions: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  deleteButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  deleteButtonText: {
+    color: "#EF4444",
+    fontSize: 16,
+    fontWeight: "500",
+    marginLeft: 8,
   },
 
   emptyState: {

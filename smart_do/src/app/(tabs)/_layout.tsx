@@ -82,8 +82,9 @@ function ThemedStackNavigator() {
           headerTintColor: theme.text,
         }}
       />
+
       <Stack.Screen
-        name="area"
+        name="project"
         options={{
           title: "",
           headerShown: true,

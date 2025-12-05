@@ -3,6 +3,7 @@ import "../../global.css";
 import React from "react";
 import { TasksProvider } from "@/context/TasksContext";
 import { AreasProvider } from "@/context/AreasContext";
+import { ProjectsProvider } from "@/context/ProjectsContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -16,14 +17,16 @@ export default function RootLayout() {
       <ThemeProvider>
         <TasksProvider>
           <AreasProvider>
-            <Stack>
-              <Stack.Screen
-                name="(tabs)"
-                options={{
-                  headerShown: false,
-                }}
-              />
-            </Stack>
+            <ProjectsProvider>
+              <Stack>
+                <Stack.Screen
+                  name="(tabs)"
+                  options={{
+                    headerShown: false,
+                  }}
+                />
+              </Stack>
+            </ProjectsProvider>
           </AreasProvider>
         </TasksProvider>
       </ThemeProvider>

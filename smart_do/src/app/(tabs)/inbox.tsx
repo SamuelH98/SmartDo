@@ -24,6 +24,7 @@ import {
 import React, { useState, useRef, useEffect } from "react";
 import { useTasks, Task } from "@/context/TasksContext";
 import { useAreas } from "@/context/AreasContext";
+import { useProjects } from "@/context/ProjectsContext";
 import { DatePickerModal } from "@/components/DatePickerModal";
 import { useLocalSearchParams } from "expo-router";
 import { useTheme } from "@/context/ThemeContext";
@@ -51,6 +52,7 @@ export default function InboxScreen() {
     loading,
   } = useTasks();
   const { areas, addTaskToArea } = useAreas();
+  const { projects, addProject, addTaskToProject } = useProjects();
 
   const activeTasks = tasks.filter((task) => !task.completed);
 
@@ -169,7 +171,16 @@ export default function InboxScreen() {
 
   const handleMoveToProject = (projectId: string) => {
     if (selectedTask) {
-      addTaskToArea(projectId, selectedTask.sender);
+      addTaskToProject(projectId, selectedTask.sender);
+      removeTask(selectedTask.id);
+      setMoveModal(false);
+      setSelectedTask(null);
+    }
+  };
+
+  const handleMoveToArea = (areaId: string) => {
+    if (selectedTask) {
+      addTaskToArea(areaId, selectedTask.sender);
       removeTask(selectedTask.id);
       setMoveModal(false);
       setSelectedTask(null);
@@ -601,41 +612,94 @@ export default function InboxScreen() {
               </View>
 
               <ScrollView style={styles.modalScrollView}>
-                {areas.length === 0 ? (
+                {/* Areas Section */}
+                {areas.length > 0 && (
+                  <View style={styles.moveSection}>
+                    <AppText
+                      style={[
+                        styles.moveSectionTitle,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
+                      Areas
+                    </AppText>
+                    {areas.map((area) => (
+                      <TouchableOpacity
+                        key={area.id}
+                        style={[
+                          styles.projectItem,
+                          { borderColor: theme.border },
+                        ]}
+                        onPress={() => handleMoveToArea(area.id)}
+                      >
+                        <AppText
+                          style={[styles.projectName, { color: theme.text }]}
+                        >
+                          {area.name}
+                        </AppText>
+                        <AppText
+                          style={[
+                            styles.projectTaskCount,
+                            { color: theme.textSecondary, marginTop: 4 },
+                          ]}
+                        >
+                          {area.tasks.length} task
+                          {area.tasks.length !== 1 ? "s" : ""}
+                        </AppText>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+
+                {/* Projects Section */}
+                {projects.length > 0 && (
+                  <View style={styles.moveSection}>
+                    <AppText
+                      style={[
+                        styles.moveSectionTitle,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
+                      Projects
+                    </AppText>
+                    {projects.map((project) => (
+                      <TouchableOpacity
+                        key={project.id}
+                        style={[
+                          styles.projectItem,
+                          { borderColor: theme.border },
+                        ]}
+                        onPress={() => handleMoveToProject(project.id)}
+                      >
+                        <AppText
+                          style={[styles.projectName, { color: theme.text }]}
+                        >
+                          {project.name}
+                        </AppText>
+                        <AppText
+                          style={[
+                            styles.projectTaskCount,
+                            { color: theme.textSecondary, marginTop: 4 },
+                          ]}
+                        >
+                          {project.tasks.length} task
+                          {project.tasks.length !== 1 ? "s" : ""}
+                        </AppText>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+
+                {/* Empty State */}
+                {areas.length === 0 && projects.length === 0 && (
                   <AppText
                     style={[
                       styles.noProjectsText,
                       { color: theme.textSecondary },
                     ]}
                   >
-                    No projects yet. Create one first!
+                    No areas or projects yet. Create one first!
                   </AppText>
-                ) : (
-                  areas.map((project) => (
-                    <TouchableOpacity
-                      key={project.id}
-                      style={[
-                        styles.projectItem,
-                        { borderColor: theme.border },
-                      ]}
-                      onPress={() => handleMoveToProject(project.id)}
-                    >
-                      <AppText
-                        style={[styles.projectName, { color: theme.text }]}
-                      >
-                        {project.name}
-                      </AppText>
-                      <AppText
-                        style={[
-                          styles.projectTaskCount,
-                          { color: theme.textSecondary, marginTop: 4 },
-                        ]}
-                      >
-                        {project.tasks.length} task
-                        {project.tasks.length !== 1 ? "s" : ""}
-                      </AppText>
-                    </TouchableOpacity>
-                  ))
                 )}
               </ScrollView>
 
@@ -931,5 +995,14 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "#374151",
     fontWeight: "500",
+  },
+  moveSection: {
+    marginBottom: 24,
+  },
+  moveSectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 12,
+    paddingHorizontal: 16,
   },
 });

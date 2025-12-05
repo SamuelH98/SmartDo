@@ -5,6 +5,7 @@ import { Clock, Plus } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useTasks } from "@/context/TasksContext";
 import { useAreas } from "@/context/AreasContext";
+import { useProjects } from "@/context/ProjectsContext";
 import { useTheme } from "@/context/ThemeContext";
 
 interface Task {
@@ -35,6 +36,7 @@ interface UnifiedTask {
   completed: boolean;
   isArea: boolean;
   areaId?: string;
+  isProjectTask?: boolean;
   dueDate?: string;
   time?: string;
   timestamp?: number;
@@ -53,6 +55,7 @@ export default function AnytimeScreen() {
   const router = useRouter();
   const { tasks, toggleTaskCompletion } = useTasks();
   const { areas, toggleTaskCompletion: toggleAreaTask } = useAreas();
+  const { projects, toggleTaskCompletion: toggleProjectTask } = useProjects();
 
   // Filter tasks that don't have due dates and are not completed
   const anytimeTasks = tasks.filter(
@@ -61,23 +64,36 @@ export default function AnytimeScreen() {
 
   // Filter area tasks that don't have due dates and are not completed
   const anytimeAreaTasks = areas
-    .map((area: Area) => ({
+    .map((area: any) => ({
       ...area,
-      tasks: area.tasks.filter((task: AreaTask) => !task.completed),
+      tasks: area.tasks.filter((task: any) => !task.completed),
     }))
-    .filter((area: Area & { tasks: AreaTask[] }) => area.tasks.length > 0);
+    .filter((area: any) => area.tasks.length > 0);
+
+  // Filter project tasks that don't have due dates and are not completed
+  const anytimeProjectTasks = projects
+    .map((project: any) => ({
+      ...project,
+      tasks: project.tasks.filter((task: any) => !task.completed),
+    }))
+    .filter((project: any) => project.tasks.length > 0);
 
   const handleToggleComplete = (
     taskId: string,
     isArea: boolean,
     areaId?: string,
+    isProjectTask?: boolean,
     event?: any,
   ) => {
     if (event) {
       event.stopPropagation();
     }
     if (isArea && areaId) {
-      toggleAreaTask(areaId, taskId);
+      if (isProjectTask) {
+        toggleProjectTask(areaId, taskId);
+      } else {
+        toggleAreaTask(areaId, taskId);
+      }
     } else {
       toggleTaskCompletion(taskId);
     }
@@ -119,7 +135,13 @@ export default function AnytimeScreen() {
             { borderColor: theme.checkboxBorder, marginTop: 2 },
           ]}
           onPress={(e) =>
-            handleToggleComplete(item.id, item.isArea, item.areaId, e)
+            handleToggleComplete(
+              item.id,
+              item.isArea,
+              item.areaId,
+              item.isProjectTask,
+              e,
+            )
           }
         >
           {item.completed && (
@@ -176,16 +198,32 @@ export default function AnytimeScreen() {
   }
 
   // Add each area as a section with its anytime tasks
-  anytimeAreaTasks.forEach((area: Area & { tasks: AreaTask[] }) => {
+  anytimeAreaTasks.forEach((area: any) => {
     sections.push({
       title: area.name,
-      data: area.tasks.map((task) => ({
+      data: area.tasks.map((task: any) => ({
         ...task,
         isArea: true,
         areaId: area.id,
+        isProjectTask: false,
       })),
       isArea: true,
       areaId: area.id,
+    });
+  });
+
+  // Add each project as a section with its anytime tasks
+  anytimeProjectTasks.forEach((project: any) => {
+    sections.push({
+      title: project.name,
+      data: project.tasks.map((task: any) => ({
+        ...task,
+        isArea: true,
+        areaId: project.id,
+        isProjectTask: true,
+      })),
+      isArea: true,
+      areaId: project.id,
     });
   });
 

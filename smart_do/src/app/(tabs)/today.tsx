@@ -10,7 +10,8 @@ import { AppText } from "@/components/AppText";
 import { Check, X, Star, Plus, ChevronRight } from "lucide-react-native";
 import { useState } from "react";
 import { useTasks, Task } from "@/context/TasksContext";
-import { useAreas, AreaTask, Area } from "@/context/AreasContext";
+import { useAreas, Area } from "@/context/AreasContext";
+import { useProjects, ProjectTask } from "@/context/ProjectsContext";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/context/ThemeContext";
 
@@ -22,6 +23,7 @@ interface UnifiedTask {
   completed: boolean;
   isArea: boolean;
   areaId?: string;
+  isProjectTask?: boolean;
   dueDate?: string;
   time?: string;
   timestamp?: number;
@@ -33,23 +35,28 @@ export default function TodayScreen() {
   const router = useRouter();
   const { tasks, toggleTaskCompletion } = useTasks();
   const { areas, toggleTaskCompletion: toggleAreaTask } = useAreas();
+  const { projects, toggleTaskCompletion: toggleProjectTask } = useProjects();
   const [previewModal, setPreviewModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<UnifiedTask | null>(null);
 
   // Filter to only show incomplete tasks in Inbox
   const incompleteTasks = tasks.filter((task) => !task.completed);
 
-  // Calculate total incomplete tasks across all areas
+  // Calculate total incomplete tasks across all areas and projects
   const getTotalIncompleteTasks = () => {
     const inboxCount = incompleteTasks.length;
     const areasCount = areas.reduce(
       (sum, a) => sum + a.tasks.filter((t) => !t.completed).length,
       0,
     );
-    return inboxCount + areasCount;
+    const projectsCount = projects.reduce(
+      (sum, p) => sum + p.tasks.filter((t) => !t.completed).length,
+      0,
+    );
+    return inboxCount + areasCount + projectsCount;
   };
 
-  // Prepare sections: Only show areas (all tasks including completed)
+  // Prepare sections: Show areas and projects with their tasks
   const getSectionData = () => {
     const sections = [];
 
@@ -70,9 +77,25 @@ export default function TodayScreen() {
           ...task,
           isArea: true,
           areaId: area.id,
+          isProjectTask: false,
         })),
         isArea: true,
         areaId: area.id,
+      });
+    });
+
+    // Add each project as a section with ALL its tasks (completed and incomplete)
+    projects.forEach((project) => {
+      sections.push({
+        title: project.name,
+        data: project.tasks.map((task) => ({
+          ...task,
+          isArea: true,
+          areaId: project.id,
+          isProjectTask: true,
+        })),
+        isArea: true,
+        areaId: project.id,
       });
     });
 
@@ -85,14 +108,19 @@ export default function TodayScreen() {
     taskId: string,
     isArea: boolean,
     areaId?: string,
+    isProjectTask?: boolean,
     event?: any,
   ) => {
     if (event) {
       event.stopPropagation();
     }
     if (isArea && areaId) {
-      // For area tasks, we toggle completion (they stay in area)
-      toggleAreaTask(areaId, taskId);
+      // For area/project tasks, toggle completion
+      if (isProjectTask) {
+        toggleProjectTask(areaId, taskId);
+      } else {
+        toggleAreaTask(areaId, taskId);
+      }
     } else {
       // For inbox tasks, marking done moves them to logbook
       toggleTaskCompletion(taskId);
@@ -145,7 +173,13 @@ export default function TodayScreen() {
           { borderColor: theme.checkboxBorder, marginTop: 2 },
         ]}
         onPress={(e) =>
-          handleToggleComplete(item.id, item.isArea, item.areaId, e)
+          handleToggleComplete(
+            item.id,
+            item.isArea,
+            item.areaId,
+            item.isProjectTask,
+            e,
+          )
         }
       >
         {item.completed && <Check size={14} color="#3B82F6" strokeWidth={3} />}
@@ -254,7 +288,7 @@ export default function TodayScreen() {
                 style={styles.actionButton}
                 onPress={() => {
                   if (selectedTask?.isArea && selectedTask?.areaId) {
-                    toggleAreaTask(selectedTask.areaId, selectedTask.id);
+                    toggleProjectTask(selectedTask.areaId, selectedTask.id);
                   } else if (selectedTask?.id) {
                     toggleTaskCompletion(selectedTask.id);
                   }
